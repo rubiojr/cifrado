@@ -1,11 +1,11 @@
 #!/usr/bin/env ruby
-require 'thor'
 require 'cifrado'
 require 'yaml'
 
 class CifradoCLI < Thor
 
   include Cifrado
+  include Cifrado::Utils
 
   option :username
   option :password
@@ -69,10 +69,19 @@ class CifradoCLI < Thor
                                         :auth_url => config[:auth_url],
                                         :connection_options => { :ssl_verify_peer => !options[:insecure] }
 
-      client.split_and_upload container, file, :progressbar => true
+      chunks = calculate_chunks(file)
+      count = 1
+      client.split_and_upload container, file, :progressbar => true do |s|
+        Log.info "Uploading segment #{count} of #{chunks}..."
+        count += 1
+      end
     rescue Excon::Errors::Unauthorized => e
       Log.error set_color("Unauthorized.", :red, true)
       Log.error "Double check the username, password and auth_url."
+    rescue Excon::Errors::SocketError => e
+      if e.message =~ /Unable to verify certificate/
+        Log.error "Unable to verify certificate. Try using --insecure."
+      end
     end
   end
 
