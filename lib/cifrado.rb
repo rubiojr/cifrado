@@ -1,14 +1,22 @@
 require 'cifrado/version'
 require 'logger'
 require 'uri'
+require 'thor'
 require 'cifrado/utils'
 
 module Cifrado
   
   if !defined? Log or Log.nil?
+    shell = Thor::Shell::Color.new
     Log = Logger.new($stdout)
     Log.formatter = proc do |severity, datetime, progname, msg|
+      if severity == 'ERROR'
+        "[Cifrado] #{shell.set_color(severity, :red, true)}: #{msg}\n"
+      elsif severity == 'WARN'
+        "[Cifrado] #{shell.set_color(severity, :yellow, true)}: #{msg}\n"
+      else
         "[Cifrado] #{severity}: #{msg}\n"
+      end
     end
     Log.level = Logger::INFO unless ENV['DEBUG']
     Log.debug "Initializing logger"
