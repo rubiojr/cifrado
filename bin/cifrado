@@ -1,0 +1,81 @@
+#!/usr/bin/env ruby
+require 'thor'
+require 'cifrado'
+require 'yaml'
+
+class CifradoCLI < Thor
+
+  include Cifrado
+
+  option :username
+  option :password
+  option :auth_url
+  option :insecure, :type => :boolean
+
+  desc "upload CONTAINER FILE", "Upload a file"
+  def upload(container, file)
+
+    config_file = File.join(ENV['HOME'], '.cifradorc')
+    config = {}
+
+    if File.exist?(config_file)
+      begin
+        Cifrado::Log.debug "Trying to read config file #{config_file}"
+        config = YAML.load_file(config_file)
+        Cifrado::Log.debug "Config #{config_file} read"
+        original_config = config.dup
+      rescue => e
+        Cifrado::Log.error "Error loading config file"
+        Cifrado::Log.error e.message
+      end
+    end
+
+    config[:username] = options[:username] || config[:username] || ask('username:')
+    if options[:password] or config[:password]
+      config[:password] = options[:password] || config[:password]
+    else
+      system 'stty -echo -icanon'
+      config[:password] = ask('password:')
+      system 'stty echo icanon'
+      puts
+    end
+    config[:auth_url] = options[:auth_url] || config[:auth_url] || ask('auth_url:')
+
+    unless File.exist?(config_file)
+      puts
+      puts "Cifrado can save this settings in #{ENV['HOME']}/.cifradorc"
+      puts "for later use."
+      puts "The settings (password included) are saved unencrypted."
+      puts
+      if yes? "Do you want to save these settings?"
+        File.open(config_file, 'w') do |f| 
+          f.puts config.to_yaml
+          f.chmod 0600
+        end
+        @settings_saved = true
+      end
+    end
+
+    if original_config != config and !@settings_saved
+      puts "username, password and/or auth_url changed"
+      if yes? "Do you want to save the NEW settings?"
+        File.open(config_file, 'w') { |f| f.puts config.to_yaml }
+      end
+    end
+
+    begin 
+      client = Cifrado::SwiftClient.new :username => config[:username], 
+                                        :api_key  => config[:password],
+                                        :auth_url => config[:auth_url],
+                                        :connection_options => { :ssl_verify_peer => !options[:insecure] }
+
+      client.split_and_upload container, file, :progressbar => true
+    rescue Excon::Errors::Unauthorized => e
+      Log.error set_color("Unauthorized.", :red, true)
+      Log.error "Double check the username, password and auth_url."
+    end
+  end
+
+end
+
+CifradoCLI.start ARGV, :shell => Thor::Shell::Color.new
