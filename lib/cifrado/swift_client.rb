@@ -68,7 +68,8 @@ module Cifrado
       splitter = FileSplitter.new object, 
                                   calculate_chunks(object), 
                                   tmp_cache
-      splitter.split
+      splitter.split :encryption => options[:encryption],
+                     :encryption_recipient => options[:encryption_recipient]
       segment_files =  Dir["#{tmp_cache}/*"]
       sorted_segments = segment_files.sort do |a,b| 
         a.split("-")[-1].to_i <=> b.split("-")[-1].to_i

@@ -10,6 +10,7 @@ class CifradoCLI < Thor
   option :username
   option :password
   option :auth_url
+  option :encryption
   option :insecure, :type => :boolean
 
   desc "upload CONTAINER FILE", "Upload a file"
@@ -71,7 +72,26 @@ class CifradoCLI < Thor
 
       chunks = calculate_chunks(file)
       count = 1
-      client.split_and_upload container, file, :progressbar => true do |s|
+      encryption = options[:encryption]
+      extra_args = {
+        :progressbar => true
+      }
+      if encryption
+        extra_args[:encryption] = true
+        tokens = encryption.split(':')
+        etype = tokens.first
+        etarget = tokens[1..-1].join(':')
+        if etype == 'a'
+          extra_args[:encryption_recipient] = etarget
+        elsif etype == 's'
+          extra_args[:encryption_passphrase] = etarget
+        else
+          Log.error "Invalid encryption type #{etype}."
+          exit 1
+        end
+      end
+
+      client.split_and_upload container, file, extra_args do |s|
         Log.info "Uploading segment #{count} of #{chunks}..."
         count += 1
       end
