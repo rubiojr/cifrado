@@ -15,6 +15,7 @@ module Cifrado
 
 
   require 'net/http'
+  require 'net/https'
 
   class StreamingUploader
 
@@ -33,17 +34,24 @@ module Cifrado
         
         url = URI.parse(to_url)
         http = Net::HTTP.new(url.host, url.port)
+        http.use_ssl = true if url.scheme == "https"
         
         if RUBY_VERSION =~ /^1\.9/
           body_stream = MultipartStream.new(parts, block)
-          http.use_ssl = true if url.scheme == "https"
           if params[:ssl_verify_peer] == false
+            Log.debug "Disabling SSL verification"
             http.verify_mode = OpenSSL::SSL::VERIFY_NONE 
           end
         elsif RUBY_VERSION =~ /^1\.8/
-          Log.debug "Ruby 1.8 detected, ignore http.verify_mode"
           body_stream = MultipartStream.new(parts, block)
+          if params[:ssl_verify_peer] == false
+            Log.debug "Disabling SSL verification"
+            http.verify_mode = OpenSSL::SSL::VERIFY_NONE 
+          end
         else # Assumed >= 2.0
+          if params[:ssl_verify_peer] == false
+            http.verify_mode = OpenSSL::SSL::VERIFY_NONE 
+          end
           body_stream = MultipartStreamV2.new(parts, block)
         end
         
@@ -68,6 +76,7 @@ module Cifrado
         else
           # Use default timeout
         end
+        Log.debug "HTTP PUT request"
         res = http.request(req)
         res
       end
