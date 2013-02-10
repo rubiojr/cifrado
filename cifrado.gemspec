@@ -17,8 +17,7 @@ Gem::Specification.new do |gem|
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
   gem.require_paths = ["lib"]
   gem.add_dependency 'excon'
-  gem.add_dependency 'thor'
-  gem.add_dependency 'gpgme'
+  gem.add_dependency 'thor', '>= 0.17'
   gem.add_dependency 'progressbar'
   
   gem.add_development_dependency 'shindo'
