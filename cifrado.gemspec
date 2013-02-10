@@ -19,6 +19,10 @@ Gem::Specification.new do |gem|
   gem.add_dependency 'excon'
   gem.add_dependency 'thor', '>= 0.17'
   gem.add_dependency 'progressbar'
+  gem.add_dependency 'nokogiri'
+  gem.add_dependency 'multi_json'
+  gem.add_dependency 'mime-types'
+  gem.add_dependency 'yajl-ruby'
   
   gem.add_development_dependency 'shindo'
 end

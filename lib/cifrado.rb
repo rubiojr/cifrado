@@ -2,6 +2,7 @@ require 'cifrado/version'
 require 'logger'
 require 'uri'
 require 'thor'
+require 'cifrado/config'
 require 'cifrado/utils'
 
 module Cifrado
@@ -29,3 +30,4 @@ $:.insert 0, fog_path
 require 'fog/openstack'
 require 'cifrado/swift_client'
 require 'cifrado/file_splitter'
+require 'cifrado/crypto_services'
