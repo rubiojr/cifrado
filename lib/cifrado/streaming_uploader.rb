@@ -31,13 +31,21 @@ module Cifrado
           end
         end
         
-        if RUBY_VERSION =~ /^1\./
+        url = URI.parse(to_url)
+        http = Net::HTTP.new(url.host, url.port)
+        
+        if RUBY_VERSION =~ /^1\.9/
           body_stream = MultipartStream.new(parts, block)
-        else
+          http.use_ssl = true if url.scheme == "https"
+          if params[:ssl_verify_peer] == false
+            http.verify_mode = OpenSSL::SSL::VERIFY_NONE 
+          end
+        elsif RUBY_VERSION =~ /^1\.8/
+          Log.debug "Ruby 1.8 detected, ignore http.verify_mode"
+          body_stream = MultipartStream.new(parts, block)
+        else # Assumed >= 2.0
           body_stream = MultipartStreamV2.new(parts, block)
         end
-        
-        url = URI.parse(to_url)
         
         headers = { 'Content-Length' => body_stream.size.to_s }
         headers = headers.merge(params[:headers]) if params[:headers]
@@ -53,7 +61,6 @@ module Cifrado
         #req.content_type = i
         req.body_stream = body_stream
         
-        http = Net::HTTP.new(url.host, url.port)
         if params[:timeout] == -1
           http.read_timeout = nil 
         elsif params[:timeout]
@@ -61,8 +68,6 @@ module Cifrado
         else
           # Use default timeout
         end
-        http.verify_mode = OpenSSL::SSL::VERIFY_NONE if params[:ssl_verify_peer] == false
-        http.use_ssl = true if url.scheme == "https"
         res = http.request(req)
         res
       end
