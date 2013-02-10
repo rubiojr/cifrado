@@ -2,6 +2,8 @@
 require 'cifrado'
 require 'yaml'
 
+$0 = "cifrado #{ARGV.join(' ')}"
+
 class CifradoCLI < Thor
 
   include Cifrado
@@ -91,9 +93,15 @@ class CifradoCLI < Thor
         end
       end
 
-      client.split_and_upload container, file, extra_args do |s|
-        Log.info "Uploading segment #{count} of #{chunks}..."
-        count += 1
+      if chunks == 1
+        client.split_and_upload container, file, extra_args do |s|
+          Log.info "Uploading file #{s}"
+        end
+      else
+        client.split_and_upload container, file, extra_args do |s|
+          Log.info "Uploading segment #{count} of #{chunks}..."
+          count += 1
+        end
       end
     rescue Excon::Errors::Unauthorized => e
       Log.error set_color("Unauthorized.", :red, true)

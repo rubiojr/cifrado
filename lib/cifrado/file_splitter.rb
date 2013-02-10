@@ -28,28 +28,15 @@ module Cifrado
       Log.debug "Splitting file #{@filename} in #{@chunk_number} chunks"
       Log.debug "Destination directory: #{@dest_dir}"
       (1..@chunk_number).each do |n|
-        if options[:encryption]
-          unencrypted = File.join(@dest_dir, @filename + "-chunk-#{n}.tmp")
-        else
-          unencrypted = File.join(@dest_dir, @filename + "-chunk-#{n}")
-        end
-        Log.debug "Writing chunk #{unencrypted}"
-        File.open(unencrypted, "w+b") do |f|
+        chunk = File.join(@dest_dir, @filename + "-chunk-#{n}.tmp")
+        Log.debug "Writing chunk #{chunk}"
+        File.open(chunk, "wb") do |f|
           f << @file.read(@each_size)
           if n == @chunk_number and not @extra.nil?
             f << @file.read(@extra)
           end
         end
-        if options[:encryption]
-          Log.debug "Encrypting chunk #{unencrypted}"
-          etype = options[:encryption_type]
-          erecip = options[:encryption_recipient]
-          encrypted = File.join(@dest_dir, @filename + "-chunk-#{n}")
-          out = `/usr/bin/gpg --yes --recipient #{erecip} --output #{encrypted} --encrypt #{unencrypted}`
-          if $? != 0
-            Log.error "Failed to encrypt chunk #{unencrypted}"
-          end
-        end
+        yield chunk if block_given?
       end
     end
 

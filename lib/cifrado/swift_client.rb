@@ -65,34 +65,66 @@ module Cifrado
         chunks = calculate_chunks object
       end
       Log.debug "Number of chunks: #{chunks}"
-      splitter = FileSplitter.new object, 
-                                  calculate_chunks(object), 
-                                  tmp_cache
-      splitter.split :encryption => options[:encryption],
-                     :encryption_recipient => options[:encryption_recipient]
-      segment_files =  Dir["#{tmp_cache}/*"]
-      sorted_segments = segment_files.sort do |a,b| 
-        a.split("-")[-1].to_i <=> b.split("-")[-1].to_i
-      end
-      add_manifest container, object
-      object_dir = File.dirname(object)
-      count = 1
-      sorted_segments.each do |s|
-        Log.debug "Uploading segment: #{s} [#{count}/#{sorted_segments.size}]"
-        if block_given?
-          yield s
+      if chunks > 1
+        splitter = FileSplitter.new object, 
+                                    calculate_chunks(object), 
+                                    tmp_cache
+        splitter.split do |chunk|
+          if options[:encryption]
+            encrypt_file chunk, 
+                         chunk.gsub(/\.tmp$/,''),
+                         :encryption_recipient => options[:encryption_recipient],
+                         :delete_source => true
+          end
         end
-        if service.directories.get(container).files.head(s)
-          Log.debug "Segment #{s} already uploaded"
+        segment_files =  Dir["#{tmp_cache}/*"]
+        sorted_segments = segment_files.sort do |a,b| 
+          a.split("-")[-1].to_i <=> b.split("-")[-1].to_i
+        end
+        add_manifest container, object
+        object_dir = File.dirname(object)
+        count = 1
+        sorted_segments.each do |s|
+          Log.debug "Uploading segment: #{s} [#{count}/#{sorted_segments.size}]"
+          if block_given?
+            yield s
+          end
+          if service.directories.get(container).files.head(s)
+            Log.debug "Segment #{s} already uploaded"
+          else
+            # fix segment target path, since segments
+            # are in ~/.cache/cifrado/<tmp_cache>/*
+            fixed_path = File.join(object_dir, File.basename(s)).gsub(/^\.\//,'')
+            options[:source_file] = s
+            upload(container, fixed_path, options)
+          end
+          count += 1
+        end
+      else
+        # Encrypt the file to the cache
+        if service.directories.get(container).files.head(object)
+          Log.debug "File #{object} already uploaded, skipping."
+          return
+        end
+        if options[:encryption]
+          tmp_file = File.join(tmp_cache, File.basename(object))
+          FileUtils.copy object, tmp_file
+          efile = encrypt_file object, tmp_file,
+                               :encryption_recipient => options[:encryption_recipient] 
+          options[:source_file] = tmp_file
+          object_dir = File.dirname(object)
+          fixed_path = File.join(object_dir, 
+                                 File.basename(efile)).gsub(/^\.\//,'')
         else
-          # fix segment target path, since segments
-          # are in ~/.cache/cifrado/<tmp_cache>/*
-          fixed_path = File.join(object_dir, File.basename(s)).gsub(/^\.\//,'')
-          options[:source_file] = s
-          upload(container, fixed_path, options)
+          fixed_path = object
         end
-        count += 1
+        yield object
+        upload container, 
+               fixed_path, 
+               options
       end
+      Log.debug "Deleting cache dir #{tmp_cache}"
+      FileUtils.rm_rf tmp_cache
     end
 
     def upload(container, object, options = {})
@@ -109,7 +141,7 @@ module Cifrado
 
       authenticate_v2 
 
-      uri = URI.parse File.join('/', container, object)
+      uri = URI.parse File.join('/', container, URI.escape(object))
 
       storage_url = @service.credentials[:server_management_url]
       auth_token  = @service.credentials[:token]
@@ -163,6 +195,22 @@ module Cifrado
     end
     
     private
+    def encrypt_file(file, output, options = {})
+      Log.debug "Encrypting file #{file}..."
+      erecip = options[:encryption_recipient]
+      out = `/usr/bin/gpg --yes --recipient #{erecip} --output #{output} --encrypt #{file} 2>&1`
+      if $? != 0
+        Log.error "Failed to encrypt chunk #{file}"
+        puts out
+      else
+        if options[:delete_source]
+          File.delete file 
+          Log.debug "Deleting unencrypted chunk #{file}"
+        end
+      end
+      output
+    end
+
     def create_container(container)
       storage_url = @service.credentials[:server_management_url]
       begin
