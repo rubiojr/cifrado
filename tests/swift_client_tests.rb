@@ -45,14 +45,12 @@ Shindo.tests('Cifrado | SwiftClient') do
       end
     end
 
-    tests "upload block" do
+    tests "progress callback" do
       chunks = []
-      client.upload('cifrado-tests', obj) do |chunk|
-        chunks << chunk
+      cb = Proc.new do |tsize, bytes, nchunk|
+        chunks << bytes 
       end
-      test "yields chunks" do
-        chunks.size > 0
-      end
+      client.upload 'cifrado-tests', obj, :progress_callback => cb
       test "chunks equal File.size" do
         # FIXME
         # File.size should be equal to the bytes read

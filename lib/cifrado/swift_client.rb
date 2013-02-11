@@ -34,7 +34,9 @@ module Cifrado
       # path of the object and may not be the path to the
       # real file
       object_path = options[:object_path] || object
-      Log.debug "Object size: #{humanize_bytes(File.size(object))}"
+      object_size = File.size(object)
+
+      Log.debug "Object size: #{humanize_bytes(object_size)}"
 
       path = File.join('/', container, object_path)
 
@@ -48,15 +50,16 @@ module Cifrado
 
       Log.debug "Destination URI: " + storage_url + path
 
+      pcallback = options[:progress_callback]
+      nchunk = 0
       res = Cifrado::StreamingUploader.put(
           storage_url + Fog::OpenStack.escape(path),
           :headers => { 'X-Auth-Token' => auth_token }, 
           :file => File.open(object),
           :ssl_verify_peer => @connection_options[:ssl_verify_peer]
-      ) { |size| yield size if block_given? }
+      ) { |bytes| nchunk += 1; pcallback.call(object_size, bytes, nchunk) if pcallback }
 
       Log.debug "Upload response #{res.class}"
-      #raise res.class.to_s unless res.is_a? Net::HTTPCreated
       res.code.to_i
     end
     

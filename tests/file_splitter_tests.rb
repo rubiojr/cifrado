@@ -26,28 +26,31 @@ Shindo.tests('Cifrado | FileSplitter') do
       s.split.size == 2
     end
 
-    test 'accepts processor' do
-      s = FileSplitter.new obj10, 10
-      processed = []
-      s.split :processor => Proc.new { |chunk| processed << chunk }
-      processed.size == 10
-    end
-
-    s = FileSplitter.new obj10, 10
-    cs = CryptoServices.new
-    s.split(:processor => Proc.new do |chunk| 
-      cs.encrypt chunk, "#{chunk}.encrypted", :recipient => 'rubiojr@frameos.org'
-      FileUtils.mv "#{chunk}.encrypted", chunk
-    end).each do |echunk|
-      test 'encrypts chunk using CryptoServices' do
-        CryptoServices.encrypted? echunk
-      end
-    end
-
     test 'calculate chunks' do
       s = FileSplitter.new obj100
-      s.split.size == 10
+      s.split.size == 10 and !s.reused_chunks?
     end
+    
+    test 're-use chunks' do
+      s = FileSplitter.new obj100
+      s.split
+      s.reused_chunks?
+    end
+    
+    test 'discard-chunks' do
+      s = FileSplitter.new obj100, 30
+      s.split
+      !s.reused_chunks?
+    end
+    
+
+  end
+
+  test '#clean_cache' do
+    s = FileSplitter.new obj100
+    s.split
+    s.clean_cache
+    Dir["#{s.cache_dir}/*chunk-*"].size == 0 and Dir["#{s.cache_dir}/*md5"].size == 0
   end
 
   cleanup
