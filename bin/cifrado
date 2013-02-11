@@ -10,19 +10,40 @@ class CifradoCLI < Thor
   include Cifrado
   include Cifrado::Utils
 
+  check_unknown_options!
+
   class_option :username
   class_option :password
   class_option :auth_url
 
   desc "list [CONTAINER]", "List containers and objects"
+  option :insecure, :type => :boolean
   def list(container = nil)
+    config = check_options options
+    client = Cifrado::SwiftClient.new :username => config[:username], 
+                                      :api_key  => config[:password],
+                                      :auth_url => config[:auth_url],
+                                      :connection_options => { :ssl_verify_peer => !options[:insecure] }
+    client.service.directories.each { |d| puts d.key }
+  end
+
+  desc "container-add CONTAINER [DESCRIPTION]", "Create a container"
+  option :insecure, :type => :boolean
+  def container_add(container, description = '')
+    config = check_options options
+    client = Cifrado::SwiftClient.new :username => config[:username], 
+                                      :api_key  => config[:password],
+                                      :auth_url => config[:auth_url],
+                                      :connection_options => { :ssl_verify_peer => !options[:insecure] }
+    client.service.directories.create :key => container, 
+                                      :description => description
   end
 
   desc "delete CONTAINER [OBJECT]", "Delete specific container or object"
   def delete(container, object = nil)
   end
 
-  desc "clean-cache", "Empty Cifrado's cache directory"
+  desc "cache-clean", "Empty Cifrado's cache directory"
   def clean_cache
     Log.info "Cleaning cache dir #{Config.instance.cache_dir}"
     Dir["#{Config.instance.cache_dir}/*.encrypted"].each { |f| File.delete f }
@@ -36,12 +57,25 @@ class CifradoCLI < Thor
     Log.debug "Setup done"
   end
 
+  desc "set-acl CONTAINER", 'Set an ACL on containers and objects'
+  option :acl, :type => :string, :required => true
+  option :insecure, :type => :boolean
+  def set_acl(container, object = nil)
+    config = check_options options
+    client = Cifrado::SwiftClient.new :username => config[:username], 
+                                      :api_key  => config[:password],
+                                      :auth_url => config[:auth_url],
+                                      :connection_options => { :ssl_verify_peer => !options[:insecure] }
+    client.set_acl options[:acl], container
+  end
+
+  desc "upload CONTAINER FILE", "Upload a file"
   option :encrypt
   option :segments, :type => :numeric
   option :insecure, :type => :boolean
+  option :strip_path, :type => :boolean
   option :no_progressbar,   :type => :boolean
   option :fast_progressbar, :type => :boolean
-  desc "upload CONTAINER FILE", "Upload a file"
   def upload(container, file)
 
     unless File.exist?(file)
@@ -59,11 +93,14 @@ class CifradoCLI < Thor
 
       ENV['CIFRADO_FAST_PROGRESSBAR'] = 'yes' if options[:fast_progressbar]
 
+      tstart = Time.now
       if options[:segments]
         split_and_upload client, container, file, options
       else
         upload_single client, container, file, options
       end
+      tend = Time.now
+      Log.info "Time taken #{(tend - tstart).round} s."
 
     rescue Excon::Errors::Unauthorized => e
       Log.error set_color("Unauthorized.", :red, true)
@@ -139,6 +176,8 @@ class CifradoCLI < Thor
       cb = nil
     end
     config = Cifrado::Config.instance
+    object_path = object
+    object_path = File.basename(object) if options[:strip_path]
     if recipient = needs_encryption(options)
       cs = CryptoServices.new
       encrypted_file = File.join(config.cache_dir, fbasename) + ".encrypted"
@@ -146,14 +185,16 @@ class CifradoCLI < Thor
       unless CryptoServices.encrypted?(encrypted_file)
         raise Exception.new "Could not encrypt file #{object}"
       end
+
       client.upload container, 
                     encrypted_file, 
-                    :object_path => object,
+                    :object_path => object_path,
                     :progress_callback => cb
       File.delete encrypted_file
     else
       client.upload container, 
-                    object, 
+                    object,
+                    :object_path => object_path,
                     :progress_callback => cb
     end
   end
@@ -260,6 +301,7 @@ class CifradoCLI < Thor
       count += 1
       segment_number = segment.split(splitter.chunk_suffix).last
       obj_path = object + splitter.chunk_suffix + segment_number
+      obj_path = File.basename(obj_path) if options[:strip_path]
       Log.debug "Uploading segment #{obj_path} (#{File.size(segment)} bytes)..."
       client.upload container, 
                     segment, 

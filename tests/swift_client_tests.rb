@@ -4,6 +4,19 @@ Shindo.tests('Cifrado | SwiftClient') do
   obj10 = create_bin_payload 10
   obj100 = create_bin_payload 100
 
+  tests('set_acl') do
+    dir = client.service.directories.create :key => 'public-container'
+    response = client.set_acl '.r:*,.rlistings','public-container'
+    test 'success' do
+      [202,201].include? response.status
+    end
+    test 'ACL present' do
+      response = client.service.request :method => 'GET', 
+                                        :path => 'public-container'
+      response.headers['X-Container-Read'] == '.r:*,.rlistings'
+    end
+    dir.destroy
+  end
   tests("#upload") do
 
     tests("responds to") do

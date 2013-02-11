@@ -25,6 +25,17 @@ module Cifrado
       @service
     end
 
+    def set_acl(acl, container, object = nil)
+      if object
+        raise NotImplementedError.new
+      else
+        service.request :path => Fog::OpenStack.escape(container), 
+                        :headers => { 'X-Container-Read' => acl },
+                        :expects => [201, 202],
+                        :method  => 'PUT'
+      end
+    end
+
     def upload(container, object, options = {})
 
       raise ArgumentError.new("Invalid container") if container.nil?
