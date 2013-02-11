@@ -132,7 +132,7 @@ class CifradoCLI < Thor
   def upload_single(client, container, object, options)
     fsize = File.size(object)
     fbasename = File.basename(object)
-    Log.info "Uploading #{fbasename} #{(Utils.humanize_bytes(fsize))}"
+    Log.info "Uploading #{fbasename} (#{humanize_bytes(fsize)})"
     unless options[:no_progressbar]
       cb = progressbar_callback(1, 1)
     else
@@ -162,30 +162,35 @@ class CifradoCLI < Thor
     @progressbar_count = 0 
     @progressbar_finished = false
     Log.debug "Calling progressbar_callback"
+
     if ENV['CIFRADO_FAST_PROGRESSBAR']
+      if total != 1
+        title = "[#{count}/#{total}]"
+      else
+        title = ""
+      end
       #Log.warn 'Using dummy progressbar callback'
-      return Proc.new do |total, bytes, nchunk| 
+      return Proc.new do |tbytes, bytes, nchunk| 
         @progressbar_count += bytes
-        percentage = ((@progressbar_count*100.0/total))
-        if ((percentage % 10) < 0.1) and @progressbar_count <= total
+        percentage = ((@progressbar_count*100.0/tbytes))
+        if ((percentage % 10) < 0.1) and @progressbar_count <= tbytes
           print "\r"
-          print " #{percentage.round}% "
+          print "Progress (#{percentage.round}%) #{title}: "
           print '.' * (percentage/10).floor
         end
-        if (@progressbar_count + bytes) >= total and !@progressbar_finished
+        if (@progressbar_count + bytes) >= tbytes and !@progressbar_finished
           @progressbar_finished = true
+          percentage = 100
           print "\r"
-          print " 100% "
+          print "Progress (#{percentage.round}%) #{title}: "
           print '.' * (percentage/10).floor
           puts
         end
       end
     end
-    if total == 1
-      title = "Progress"
-    else
-      title = "Segment [#{count}/#{total}]"
-    end
+
+    title = (total == 1 ? 'Progress' : "Segment [#{count}/#{total}]")
+
     if RUBY_VERSION =~ /1\.8/
       # See https://github.com/jfelchner/ruby-progressbar/pull/25
       Log.warn "Progressbar performance is very poor under Ruby 1.8"
