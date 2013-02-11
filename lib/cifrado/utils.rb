@@ -8,7 +8,7 @@ module Cifrado
         m = m/1024.0
         units.shift
       end
-      return m.round.to_s + " #{units[0]}"
+      return "%.2f #{units[0]}" % m
     end
 
     def calculate_chunks(file)
