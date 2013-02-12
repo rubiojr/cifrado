@@ -26,9 +26,8 @@ Shindo.tests('Cifrado | CryptoServices') do
                                :encrypt_name => true,
                                :recipient => 'rubiojr@frameos.org'
         out = s.encrypt obj, "#{obj}" 
-        digest = Digest::SHA2.new << obj
         dir = File.dirname(obj)
-        (out == File.join(dir, File.join(digest.to_s))) and File.exist?(out)
+        (out != obj) and File.exist?(out)
       end
 
       raises ArgumentError, 'with wrong gpg binary' do
@@ -53,9 +52,7 @@ Shindo.tests('Cifrado | CryptoServices') do
                                :encrypt_name => true,
                                :passphrase => 'foobar'
         out = s.encrypt obj, "#{obj}" 
-        digest = Digest::SHA2.new << obj
-        dir = File.dirname(obj)
-        out == File.join(dir, File.join(digest.to_s))
+        out != obj and File.exist?(out)
       end
     end
 
