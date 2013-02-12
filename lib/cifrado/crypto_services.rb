@@ -1,5 +1,7 @@
 require 'digest/sha2'
 require 'securerandom'
+require 'uri'
+
 module Cifrado
   class CryptoServices
 
@@ -24,7 +26,8 @@ module Cifrado
 
       # so we can use --use-embedded-filename to recover the original
       # filename
-      @gpg_extra_args << "--set-filename #{file}"
+      Log.debug "Setting GPG filename #{file}"
+      @gpg_extra_args << "--set-filename '#{URI.encode(file)}'"
 
       check_args
       raise ArgumentError.new("#{@gpg_binary} not found") unless File.exist?(@gpg_binary)
