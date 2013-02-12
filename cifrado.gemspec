@@ -7,10 +7,12 @@ Gem::Specification.new do |gem|
   gem.name          = "cifrado"
   gem.version       = Cifrado::VERSION
   gem.authors       = ["Sergio Rubio"]
+  gem.signing_key   = File.expand_path("~/.gem/gem-private_key.pem")
+  gem.cert_chain    = ["gem-public_cert.pem"]
   gem.email         = ["rubiojr@frameos.org"]
   gem.description   = %q{OpenStack Swift CLI with encryption support}
   gem.summary       = %q{OpenStack Swift CLI with encryption support}
-  gem.homepage      = "https://github.com/rubiojr/cifrado"
+  gem.homepage      = "http://rubiojr.github.com/cifrado"
 
   gem.files         = `git ls-files`.split($/)
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
