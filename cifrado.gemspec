@@ -8,8 +8,8 @@ Gem::Specification.new do |gem|
   gem.version       = Cifrado::VERSION
   gem.authors       = ["Sergio Rubio"]
   gem.email         = ["rubiojr@frameos.org"]
-  gem.description   = %q{Encrypted OpenStack Swift uploads}
-  gem.summary       = %q{Encrypted OpenStack Swift uploads}
+  gem.description   = %q{OpenStack Swift CLI with encryption support}
+  gem.summary       = %q{OpenStack Swift CLI with encryption support}
   gem.homepage      = "https://github.com/rubiojr/cifrado"
 
   gem.files         = `git ls-files`.split($/)
