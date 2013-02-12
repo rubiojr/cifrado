@@ -331,9 +331,14 @@ module Cifrado
         if etype == 'symmetric'
           Log.info "Password to encrypt the data required"
           system 'stty -echo -icanon'
-          passphrase = ask("password:")
-          system 'stty echo icanon'
+          passphrase = ask("Enter passphrase:")
           puts
+          passphrase2 = ask("Repeat passphrase:")
+          puts
+          if passphrase != passphrase2
+            raise 'Passphrase does not match'
+          end
+          system 'stty echo icanon'
         else
           passphrase = tokens[1..-1].join(':')
         end
@@ -368,6 +373,10 @@ module Cifrado
       segments = splitter.split
 
       Log.info "Uploading #{fbasename} segments"
+      if options[:encrypt]
+        Log.info "Target object hash:"
+        Log.info "#{target_manifest}"
+      end
       count = 0
       segments_added = []
       segments.each do |segment|
@@ -382,7 +391,7 @@ module Cifrado
           cb = nil
         end
         segment_number = segment.split(splitter.chunk_suffix).last
-        if defined? :encrypted_output and encrypted_output
+        if options[:encrypt]
           Log.debug "Stripping path from encrypted segment #{encrypted_output}"
           obj_path = File.basename(encrypted_output) + splitter.chunk_suffix + segment_number
         else
