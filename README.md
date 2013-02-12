@@ -1,5 +1,7 @@
 # Cifrado
 
+**WARNING:** Cifrado is experimental stuff. It may eat your data, your computer may blow up or it may cause your hair to fall. Use at your own risk.
+
 OpenStack Swift CLI with built in (gpg) encryption.
 
 ## Installation
