@@ -67,8 +67,8 @@ module Cifrado
           Log.debug "All the previous chunks present"
           @reused_chunks = true
           prev_chunks.each { |c| yield c if block_given? }
+          return prev_chunks
         end
-        return prev_chunks
       end
 
       # Cached chunks not found or not valid

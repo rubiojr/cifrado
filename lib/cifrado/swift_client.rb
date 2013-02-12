@@ -36,6 +36,14 @@ module Cifrado
       end
     end
 
+    def head(url, params = {})
+      params[:headers] = (params[:headers] || {}).merge(
+        { 'X-Auth-Token' => service.credentials[:token] }
+      )
+      Excon.head url, 
+                 params
+    end
+
     def upload(container, object, options = {})
 
       raise ArgumentError.new("Invalid container") if container.nil?

@@ -1,24 +1,50 @@
 # Cifrado
 
-TODO: Write a gem description
+OpenStack Swift CLI with built in (gpg) encryption.
 
 ## Installation
 
-Add this line to your application's Gemfile:
-
-    gem 'cifrado'
-
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
+Install it yourself as:
 
     $ gem install cifrado
 
+Nees the GPG binary installed to use encryption.
+
 ## Usage
 
-TODO: Write usage instructions here
+It has built-in help:
+
+    cifrado help
+
+or 
+
+    cifrado help <command>
+
+### Encrypted, symmetric uploads
+
+    cifrado upload --insecure \
+                   --encrypt symmetric \
+                   my-container audio.mp3
+
+Cifrado will ask you for the password.
+
+You could also specify the password as an argument (not recommended):
+
+    cifrado upload --insecure \
+                   --encrypt s:foobar \
+                   my-container audio.mp3
+
+### Encrypted, asymmetric uploads
+
+    cifrado upload --insecure \
+                   --encrypt a:rubiojr@frameos.org \
+                   my-container audio.mp3
+
+Or using the key ID:
+
+    cifrado upload --insecure \
+                   --encrypt a:F345BE74 \
+                   my-container audio.mp3
 
 ## Contributing
 

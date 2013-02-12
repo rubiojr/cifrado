@@ -39,8 +39,8 @@ Shindo.tests('Cifrado | FileSplitter') do
     
     test 'discard-chunks' do
       s = FileSplitter.new obj100, 30
-      s.split
-      !s.reused_chunks?
+      chunks = s.split
+      !s.reused_chunks? and chunks.size == 30
     end
     
 
