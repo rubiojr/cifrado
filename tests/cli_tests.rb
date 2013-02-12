@@ -83,7 +83,7 @@ Shindo.tests('Cifrado | CLI') do
   cleanup
 
   tests '#list' do
-    test 'container' do
+    test 'container has 1 element' do
       obj = create_bin_payload 1
       cli = Cifrado::CLI.new
       cli.options = {
