@@ -44,6 +44,12 @@ module Cifrado
     end
     
     def split
+      # create cache directory
+      unless File.directory?(@cache_dir)
+        Log.debug "Creating cache dir: #{@cache_dir}"
+        FileUtils.mkdir_p(@cache_dir) 
+      end
+
       # Try to re-use previous chunks if found
       md5sum_path = "#{File.join(@cache_dir, @filename)}.md5"
       if File.exist?(md5sum_path)
@@ -75,12 +81,6 @@ module Cifrado
       Log.debug "Create md5sum before splitting: #{md5sum_path}"
       md5sum = File.open md5sum_path, 'w+'
       md5sum.puts "#{File.basename(@source)}:#{Digest::MD5.file(@source).hexdigest}"
-
-      # create cache directory
-      unless File.directory?(@cache_dir)
-        Log.debug "Creating cache dir: #{@cache_dir}"
-        FileUtils.mkdir_p(@cache_dir) 
-      end
 
       chunks = []
       Log.debug "Splitting file #{@filename} in #{@chunk_number} chunks"
