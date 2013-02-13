@@ -66,10 +66,6 @@ module Cifrado
     option :insecure, :type => :boolean
     def container_add(container, description = '')
       client = client_instance options
-      client = Cifrado::SwiftClient.new :username => config[:username], 
-                                        :api_key  => config[:password],
-                                        :auth_url => config[:auth_url],
-                                        :connection_options => { :ssl_verify_peer => !options[:insecure] }
       client.service.directories.create :key => container, 
                                         :description => description
     end
@@ -96,11 +92,7 @@ module Cifrado
     option :acl, :type => :string, :required => true
     option :insecure, :type => :boolean
     def set_acl(container, object = nil)
-      config = check_options options
-      client = Cifrado::SwiftClient.new :username => config[:username], 
-                                        :api_key  => config[:password],
-                                        :auth_url => config[:auth_url],
-                                        :connection_options => { :ssl_verify_peer => !options[:insecure] }
+      client = client_instance options
       client.set_acl options[:acl], container
     end
 
@@ -112,46 +104,24 @@ module Cifrado
     option :no_progressbar,   :type => :boolean
     option :fast_progressbar, :type => :boolean
     def upload(container, file)
-
       unless File.exist?(file)
         Log.error "File '#{file}' does not exist"
         exit 1
       end
 
-      config = check_options options
-      begin 
-        client = Cifrado::SwiftClient.new :username => config[:username], 
-                                          :api_key  => config[:password],
-                                          :auth_url => config[:auth_url],
-                                          :connection_options => { :ssl_verify_peer => !options[:insecure] }
+      client = client_instance options
+      ENV['CIFRADO_FAST_PROGRESSBAR'] = 'yes' if options[:fast_progressbar]
 
-
-        ENV['CIFRADO_FAST_PROGRESSBAR'] = 'yes' if options[:fast_progressbar]
-
-        tstart = Time.now
-        uploaded = nil
-        if options[:segments]
-          uploaded = split_and_upload client, container, file, options
-        else
-          uploaded = upload_single client, container, file, options
-        end
-        tend = Time.now
-        Log.info "Time taken #{(tend - tstart).round} s."
-        uploaded
-
-      rescue Excon::Errors::Unauthorized => e
-        Log.error set_color("Unauthorized.", :red, true)
-        Log.error "Double check the username, password and auth_url."
-      rescue Excon::Errors::SocketError => e
-        if e.message =~ /Unable to verify certificate/
-          Log.error "Unable to verify certificate. Try using --insecure."
-        end
-      rescue Exception => e
-        Log.error e.message
-        Log.debug e.backtrace.inspect
-      ensure
-        system 'stty echo icanon'
+      tstart = Time.now
+      uploaded = nil
+      if options[:segments]
+        uploaded = split_and_upload client, container, file, options
+      else
+        uploaded = upload_single client, container, file, options
       end
+      tend = Time.now
+      Log.info "Time taken #{(tend - tstart).round} s."
+      uploaded
     end
 
     private
@@ -170,8 +140,13 @@ module Cifrado
         Log.error "Double check the username, password and auth_url."
       rescue Excon::Errors::SocketError => e
         if e.message =~ /Unable to verify certificate/
-          Log.error "Unable to verify certificate. Try using --insecure."
+          Log.error "Unable to verify certificate."
         end
+      rescue Exception => e
+        Log.error e.message
+        Log.debug e.backtrace.inspect
+      ensure
+        system 'stty echo icanon'
       end
       exit 1
     end
