@@ -6,14 +6,15 @@ module Fog
 
       class File < Fog::Model
 
-        identity  :key,             :aliases => 'name'
+        identity  :key,                         :aliases => 'name'
 
-        attribute :content_length,  :aliases => ['bytes', 'Content-Length'], :type => :integer
-        attribute :content_type,    :aliases => ['content_type', 'Content-Type']
-        attribute :etag,            :aliases => ['hash', 'Etag']
-        attribute :last_modified,   :aliases => ['last_modified', 'Last-Modified'], :type => :time
+        attribute :content_length,              :aliases => ['bytes', 'Content-Length'], :type => :integer
+        attribute :content_type,                :aliases => ['content_type', 'Content-Type']
+        attribute :etag,                        :aliases => ['hash', 'Etag']
+        attribute :last_modified,               :aliases => ['last_modified', 'Last-Modified'], :type => :time
         attribute :access_control_allow_origin, :aliases => ['Access-Control-Allow-Origin']
-        attribute :origin,          :aliases => ['Origin']
+        attribute :origin,                      :aliases => ['Origin']
+        attribute :manifest
 
         def body
           attributes[:body] ||= if last_modified
@@ -126,6 +127,7 @@ module Fog
         def metadata_attributes
           if last_modified
             headers = service.head_object(directory.key, self.key).headers
+            attributes[:manifest] = headers['X-Object-Manifest']
             headers.reject! {|k, v| !metadata_attribute?(k)}
           else
             {}

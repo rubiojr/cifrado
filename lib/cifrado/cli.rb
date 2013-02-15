@@ -51,7 +51,8 @@ module Cifrado
 
     desc "list [CONTAINER]", "List containers and objects"
     option :insecure, :type => :boolean
-    option :decrypt_filenames, :type => :boolean
+    option :decrypt_filenames, :type => :boolean, :default => true
+    option :list_segments, :type => :boolean
     def list(container = nil)
       client = client_instance options
       if container
@@ -60,12 +61,22 @@ module Cifrado
           Log.info "Listing objects in '#{container}'"
           files = dir.files
           files.each do |f|
-            encrypted_name = f.metadata[:encrypted_name]
-            if encrypted_name and options[:decrypt_filenames]
-              fname = decrypt_filename encrypted_name, @config[:password]
-              puts "#{fname} #{set_color('[encrypted]', :red)}"
+            tags = {}
+            tag_string = ''
+            # Skip segments
+            next if f.key =~ /\/segments\/\d+\.\d{2}\/\d+\/\d+/ and \
+                    not options[:list_segments]
+
+            metadata = f.metadata
+            tags[:manifest] = :yellow if f.manifest
+            if metadata[:encrypted_name] and options[:decrypt_filenames]
+              fname = decrypt_filename metadata[:encrypted_name], @config[:password]
+              tags[:encrypted] = :red
+              tags.each { |k,v| tag_string << set_color("[#{k.to_s}]",v) }
+              puts "#{fname} #{tag_string}"
             else
-              puts f.key
+              tags.each { |k,v| tag_string << set_color("[#{k.to_s}]",v) }
+              puts f.key + " #{tag_string}"
             end
           end 
           files
