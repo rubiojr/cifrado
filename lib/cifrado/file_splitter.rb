@@ -40,7 +40,8 @@ module Cifrado
 
     def clean_cache
       Dir["#{@cache_dir}/*md5"].each { |f| Log.debug "Deleting #{f}"; File.delete f }
-      Dir["#{@cache_dir}/*chunk-*"].each { |f| Log.debug "Deleting #{f}"; File.delete f }
+      Dir["#{@cache_dir}/*-chunk-*"].each { |f| Log.debug "Deleting #{f}"; File.delete f }
+      Dir["#{@cache_dir}/*-segment-*"].each { |f| Log.debug "Deleting #{f}"; File.delete f }
     end
     
     def split
