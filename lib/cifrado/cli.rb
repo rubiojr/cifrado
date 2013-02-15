@@ -17,24 +17,38 @@ module Cifrado
       creds = client.service.credentials
 
       uri = URI.parse creds[:server_management_url]
-      Log.debug "HEAD #{uri.to_s}/#{[container, object].compact.join("/")}"
+      url = "#{uri.to_s}/#{[container, object].compact.join("/")}"
+      Log.debug "HEAD #{url}"
 
-      r = client.head "#{uri.to_s}/#{[container, object].compact.join("/")}"
-
-      puts "Account:".ljust(30) + File.basename(uri.path)
-      r.headers.each do |k, v| 
-        if k == 'X-Timestamp'
-          puts "#{(k + ":").ljust(30)}#{v} (#{unix_time(v)})" 
-        elsif k == 'X-Account-Bytes-Used' or k == 'Content-Length'
-          puts "#{(k + ":").ljust(30)}#{v} (#{humanize_bytes(v)})" 
-        elsif k == 'X-Object-Meta-Encrypted-Name'
-          format = "#{(k + ":").ljust(30)}#{v}"
-          puts format
-        else
-          puts "#{(k + ":").ljust(30)}#{v}" 
-        end
+      r = client.head url
+      if r.status == 404 and object
+        file_hash = Digest::SHA2.new << object
+        url = "#{uri.to_s}/#{[container, file_hash].compact.join("/")}"
+        Log.debug "HEAD #{url}"
+        r = client.head "#{url}"
       end
-      r.headers
+      if r.status == 404
+        if object
+          Log.error 'Object not found'
+        else
+          Log.error 'Container not found'
+        end
+      else
+        puts "Account:".ljust(30) + File.basename(uri.path)
+        r.headers.each do |k, v| 
+          if k == 'X-Timestamp'
+            puts "#{(k + ":").ljust(30)}#{v} (#{unix_time(v)})" 
+          elsif k == 'X-Account-Bytes-Used' or k == 'Content-Length'
+            puts "#{(k + ":").ljust(30)}#{v} (#{humanize_bytes(v)})" 
+          elsif k == 'X-Object-Meta-Encrypted-Name'
+            format = "#{(k + ":").ljust(30)}#{v}"
+            puts format
+          else
+            puts "#{(k + ":").ljust(30)}#{v}" 
+          end
+        end
+        r.headers
+      end
     end
 
     desc "download [CONTAINER] [OBJECT]", "Download container, objects"
