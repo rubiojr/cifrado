@@ -12,7 +12,6 @@ module Cifrado
 
     desc "stat [CONTAINER] [OBJECT]", "Displays information for the account, container, or object."
     option :insecure, :type => :boolean
-    option :decrypt_filenames, :type => :boolean
     def stat(container = nil, object = nil)
       client = client_instance options
       creds = client.service.credentials
@@ -31,11 +30,6 @@ module Cifrado
         elsif k == 'X-Object-Meta-Encrypted-Name'
           format = "#{(k + ":").ljust(30)}#{v}"
           puts format
-          if options[:decrypt_filenames]
-            fname = decrypt_filename v, @config[:password]
-            format = "#{(k + ":").ljust(30)}#{fname}"
-            puts "#{format} #{set_color("[decrypted]", :green)}"
-          end
         else
           puts "#{(k + ":").ljust(30)}#{v}" 
         end
@@ -51,8 +45,8 @@ module Cifrado
 
     desc "list [CONTAINER]", "List containers and objects"
     option :insecure, :type => :boolean
-    option :decrypt_filenames, :type => :boolean, :default => true
     option :list_segments, :type => :boolean
+    option :fast, :type => :boolean
     def list(container = nil)
       client = client_instance options
       if container
@@ -61,6 +55,10 @@ module Cifrado
           Log.info "Listing objects in '#{container}'"
           files = dir.files
           files.each do |f|
+            if options[:fast]
+              puts f.key
+              next
+            end
             tags = {}
             tag_string = ''
             # Skip segments
@@ -69,7 +67,7 @@ module Cifrado
 
             metadata = f.metadata
             tags[:manifest] = :yellow if f.manifest
-            if metadata[:encrypted_name] and options[:decrypt_filenames]
+            if metadata[:encrypted_name] 
               fname = decrypt_filename metadata[:encrypted_name], @config[:password]
               tags[:encrypted] = :red
               tags.each { |k,v| tag_string << set_color("[#{k.to_s}]",v) }
