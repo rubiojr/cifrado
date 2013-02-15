@@ -17,6 +17,18 @@ Shindo.tests('Cifrado | SwiftClient') do
     end
     dir.destroy
   end
+
+  tests('#encrypted_upload') do
+    test 'success' do
+      response = client.encrypted_upload('cifrado-tests', obj) 
+      cipher = CryptoEngineAES.new client.api_key
+      url = client.service.credentials[:server_management_url]
+      url << File.join("/cifrado-tests/", obj)
+      fname = client.head(url).headers['X-Object-Meta-Encrypted-Name']
+      ([202,201].include? response.status) and obj == cipher.decrypt(fname)
+    end
+  end
+
   tests("#upload") do
 
     tests("responds to") do
@@ -39,8 +51,8 @@ Shindo.tests('Cifrado | SwiftClient') do
 
     tests "success" do
       test "upload OK" do
-        status = client.upload('cifrado-tests', obj) 
-        status == 201
+        response = client.upload('cifrado-tests', obj) 
+        response.status == 201
       end
 
       test "correct path" do

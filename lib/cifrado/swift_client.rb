@@ -1,11 +1,13 @@
 require 'cifrado/streaming_uploader'
-require 'fileutils'
 
 module Cifrado 
   
   class SwiftClient
 
     include Cifrado::Utils
+    attr_reader :api_key
+    attr_reader :username
+    attr_reader :auth_url
 
     def initialize(auth_data = {})
       @username = auth_data[:username]
@@ -40,8 +42,15 @@ module Cifrado
       params[:headers] = (params[:headers] || {}).merge(
         { 'X-Auth-Token' => service.credentials[:token] }
       )
-      Excon.head url, 
-                 params
+      Excon.head url, params
+    end
+
+    def encrypted_upload(container, object, options = {})
+      cipher = CryptoEngineAES.new @api_key
+      encrypted_name = cipher.encrypt object
+      options[:headers] ||= {}
+      options[:headers]['X-Object-Meta-Encrypted-Name'] = encrypted_name
+      upload container, object, options
     end
 
     def upload(container, object, options = {})
@@ -71,15 +80,23 @@ module Cifrado
 
       pcallback = options[:progress_callback]
       nchunk = 0
+      headers = headers = { 'X-Auth-Token' => auth_token }
+      if options[:headers]
+        headers = headers.merge options[:headers] 
+      end
       res = Cifrado::StreamingUploader.put(
           storage_url + Fog::OpenStack.escape(path),
-          :headers => { 'X-Auth-Token' => auth_token }, 
+          :headers => headers, 
           :file => File.open(object),
           :ssl_verify_peer => @connection_options[:ssl_verify_peer]
       ) { |bytes| nchunk += 1; pcallback.call(object_size, bytes, nchunk) if pcallback }
 
       Log.debug "Upload response #{res.class}"
-      res.code.to_i
+      # Wrap Net::HTTPResponse in a Excon::Response Object
+      r = Excon::Response.new :body => res.body,
+                              :headers => res.to_hash,
+                              :status => res.code.to_i
+      r
     end
     
     private

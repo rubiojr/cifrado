@@ -12,6 +12,7 @@ module Cifrado
 
     desc "stat [CONTAINER] [OBJECT]", "Displays information for the account, container, or object."
     option :insecure, :type => :boolean
+    option :decrypt_filenames, :type => :boolean
     def stat(container = nil, object = nil)
       client = client_instance options
       creds = client.service.credentials
@@ -27,6 +28,14 @@ module Cifrado
           puts "#{(k + ":").ljust(30)}#{v} (#{unix_time(v)})" 
         elsif k == 'X-Account-Bytes-Used' or k == 'Content-Length'
           puts "#{(k + ":").ljust(30)}#{v} (#{humanize_bytes(v)})" 
+        elsif k == 'X-Object-Meta-Encrypted-Name'
+          format = "#{(k + ":").ljust(30)}#{v}"
+          puts format
+          if options[:decrypt_filenames]
+            fname = decrypt_filename v, @config[:password]
+            format = "#{(k + ":").ljust(30)}#{fname}"
+            puts "#{format} #{set_color("[decrypted]", :green)}"
+          end
         else
           puts "#{(k + ":").ljust(30)}#{v}" 
         end
@@ -42,6 +51,7 @@ module Cifrado
 
     desc "list [CONTAINER]", "List containers and objects"
     option :insecure, :type => :boolean
+    option :decrypt_filenames, :type => :boolean
     def list(container = nil)
       client = client_instance options
       if container
@@ -49,7 +59,15 @@ module Cifrado
         if dir
           Log.info "Listing objects in '#{container}'"
           files = dir.files
-          files.each { |f| puts f.key }
+          files.each do |f|
+            encrypted_name = f.metadata[:encrypted_name]
+            if encrypted_name and options[:decrypt_filenames]
+              fname = decrypt_filename encrypted_name, @config[:password]
+              puts "#{fname} #{set_color('[encrypted]', :red)}"
+            else
+              puts f.key
+            end
+          end 
           files
         else
           Log.error "Container '#{container}' not found"
@@ -134,6 +152,8 @@ module Cifrado
                                           :connection_options => { 
                                             :ssl_verify_peer => !options[:insecure] 
                                           }
+        @client = client
+        @config = config
         return client
       rescue Excon::Errors::Unauthorized => e
         Log.error set_color("Unauthorized.", :red, true)
@@ -221,8 +241,12 @@ module Cifrado
         Log.debug "Writing encrypted file to #{encrypted_file}"
         encrypted_output = cs.encrypt object, 
                                       encrypted_file
+        encrypted_name = encrypt_filename object, @config[:password]
         client.upload container, 
                       encrypted_output, 
+                      :headers => { 
+                        'X-Object-Meta-Encrypted-Name' => encrypted_name
+                      },
                       :object_path => File.basename(encrypted_output),
                       :progress_callback => cb
         object_path = File.basename(encrypted_output)
@@ -368,26 +392,43 @@ module Cifrado
         segment_number = segment.split(splitter.chunk_suffix).last
         if options[:encrypt]
           Log.debug "Stripping path from encrypted segment #{encrypted_output}"
-          obj_path = File.basename(encrypted_output) + splitter.chunk_suffix + segment_number
+          suffix = splitter.chunk_suffix + segment_number
+          obj_path = File.basename(encrypted_output) + suffix
+          encrypted_name = encrypt_filename object + suffix,
+                                            @config[:password]
+          headers = { 
+            'X-Object-Meta-Encrypted-Name' => encrypted_name 
+          }
         else
           obj_path = object + splitter.chunk_suffix + segment_number
           Log.debug "Stripping path from segment #{obj_path}"
           if options[:strip_path]
             obj_path = File.basename(obj_path) 
           end
+          Log.debug "Uploading segment #{obj_path} (#{segment_size} bytes)..."
+          puts File.exist? segment
+          headers = {}
         end
 
-        Log.debug "Uploading segment #{obj_path} (#{segment_size} bytes)..."
         client.upload container, 
-                      segment, 
+                      segment,
+                      :headers => headers,
                       :object_path => obj_path,
                       :progress_callback => cb
+
         segments_added << obj_path
       end
       
       # We need this for segmented uploads
       Log.debug "Adding manifest #{object}"
-      client.service.put_object_manifest container, target_manifest
+      headers = {}
+      if options[:encrypt]
+        encrypted_name = encrypt_filename object, @config[:password]
+        headers = { 'X-Object-Meta-Encrypted-Name' => encrypted_name }
+      end
+      client.service.put_object_manifest container, 
+                                         target_manifest,
+                                         headers  
       segments_added.insert 0, target_manifest
 
       # Delete temporal encrypted file created by GPG

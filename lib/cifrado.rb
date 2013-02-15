@@ -2,6 +2,8 @@ require 'cifrado/version'
 require 'logger'
 require 'uri'
 require 'thor'
+require 'fileutils'
+require 'securerandom'
 require 'cifrado/config'
 require 'cifrado/utils'
 

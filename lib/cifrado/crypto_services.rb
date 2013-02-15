@@ -1,5 +1,4 @@
 require 'digest/sha2'
-require 'securerandom'
 require 'base64'
 
 module Cifrado
@@ -122,32 +121,13 @@ module Cifrado
   #
   # Shamelessly stolen from Gibberish, from Mark Percival
   # so I don't have to depend on yet another gem. 
+  #
   # See: https://github.com/mdp/gibberish
+  #
+  # Added a few small modifications:
+  #
+  # * Use Base64 urlsafe_encode/decode
   # 
-  #   Handles AES encryption and decryption in a way that is compatible
-  #   with OpenSSL.
-  #
-  #   Defaults to 256-bit CBC encryption, ideally you should leave it
-  #   this way
-  #
-  # ## Basic Usage
-  #
-  # ### Encrypting
-  #
-  #     cipher = Gibberish::AES.new('p4ssw0rd')
-  #     cipher.encrypt("some secret text")
-  #     #=> "U2FsdGVkX1/D7z2azGmmQELbMNJV/n9T/9j2iBPy2AM=\n"
-  #
-  # ### Decrypting
-  #
-  #     cipher = Gibberish::AES.new('p4ssw0rd')
-  #     cipher.decrypt(""U2FsdGVkX1/D7z2azGmmQELbMNJV/n9T/9j2iBPy2AM=\n"")
-  #     #=> "some secret text"
-  #
-  # ## OpenSSL Interop
-  #
-  #     echo "U2FsdGVkX1/D7z2azGmmQELbMNJV/n9T/9j2iBPy2AM=\n" | openssl enc -d -aes-256-cbc -a -k p4ssw0rd
-  #
   class CryptoEngineAES
 
     attr_reader :password, :size, :cipher
@@ -167,13 +147,13 @@ module Cifrado
       setup_cipher(:encrypt, salt)
       e = cipher.update(data) + cipher.final
       e = "Salted__#{salt}#{e}" #OpenSSL compatible
-      opts[:binary] ? e : Base64.encode64(e)
+      opts[:binary] ? e : Base64.urlsafe_encode64(e)
     end
     alias :enc :encrypt
     alias :e :encrypt
 
     def decrypt(data, opts={})
-      data = Base64.decode64(data) unless opts[:binary]
+      data = Base64.urlsafe_decode64(data) unless opts[:binary]
       salt = data[8..15]
       data = data[16..-1]
       setup_cipher(:decrypt, salt)

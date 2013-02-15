@@ -9,11 +9,11 @@ module Fog
         # * container<~String> - Name for container, should be < 256 bytes and must not contain '/'
         # * object<~String> - Name for object
         #
-        def put_object_manifest(container, object)
+        def put_object_manifest(container, object, extra_headers = {})
           path = "#{Fog::OpenStack.escape(container)}/#{Fog::OpenStack.escape(object)}"
           request(
             :expects  => 201,
-            :headers  => {'X-Object-Manifest' => path},
+            :headers  => {'X-Object-Manifest' => path}.merge(extra_headers),
             :method   => 'PUT',
             :path     => path
           )

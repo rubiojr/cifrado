@@ -7,24 +7,14 @@ module Cifrado
       (Time.at secs.to_i).to_s
     end
 
-    def encrypt_filename(name, options = {})
-      tokens = options[:encrypt].split(':')
-      etype = tokens.first
-      s = CryptoServices.new
-      if etype == 'a'
-        recipient = tokens[1..-1].join(':')
-        out = s.encrypt name, "#{obj}.encrypted", 
-                        :type => :asymmetric,
-                        :recipient => recipient
-        Digest::SHA1.hexdigest out
-      elsif etype == 's'
-        passphrase = tokens[1..-1].join(':')
-        out = s.encrypt obj, "#{obj}.encrypted", 
-                        :type => :symmetric,
-                        :passphrase => passphrase
-      else
-        raise "Invalid encryption type #{etype}."
-      end
+    def decrypt_filename(name, password, options = {})
+      cipher = CryptoEngineAES.new password
+      cipher.decrypt name
+    end
+
+    def encrypt_filename(name, password, options = {})
+      cipher = CryptoEngineAES.new password
+      cipher.encrypt name
     end
 
     def humanize_bytes(bytes)
