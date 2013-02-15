@@ -35,7 +35,8 @@ module Cifrado
       if @encrypt_name and output != '-'
         Log.debug "Scrambling file name #{file}..."
         dir = File.dirname(output)
-        output = File.join dir, (Digest::SHA2.new << (output + SecureRandom.hex)).to_s
+        #output = File.join dir, (Digest::SHA2.new << (output + SecureRandom.hex)).to_s
+        output = File.join dir, (Digest::SHA2.new << file).to_s
       end
       
       if output != '-'
