@@ -389,7 +389,7 @@ module Cifrado
           Log.info "Uploading segment #{count}/#{segments.size} (#{hsegment_size})"
           cb = nil
         end
-        segment_number = segment.split(splitter.chunk_suffix).last
+        segment_number = segment.split(splitter.chunk_suffix.gsub('/','-')).last
         if options[:encrypt]
           Log.debug "Stripping path from encrypted segment #{encrypted_output}"
           suffix = splitter.chunk_suffix + segment_number

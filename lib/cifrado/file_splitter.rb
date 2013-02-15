@@ -31,7 +31,7 @@ module Cifrado
       # the last chunk could be bigger than the others
       @each_size, @extra = File.size(filename).divmod(@chunk_number)
       @cache_dir = File.expand_path cache_dir
-      @chunk_suffix = '-chunk-'
+      @chunk_suffix = "/segments/#{'%.2f' % Time.now.to_f}/#{File.size(filename)}/"
     end
 
     def reused_chunks?
@@ -86,7 +86,7 @@ module Cifrado
       Log.debug "Splitting file #{@filename} in #{@chunk_number} chunks"
       Log.debug "Destination directory: #{@cache_dir}"
       (1..@chunk_number).each do |n|
-        chunk = File.join(@cache_dir, @filename + "#{@chunk_suffix}#{n}")
+        chunk = File.join(@cache_dir, @filename + "#{@chunk_suffix.gsub('/','-')}#{n}")
         Log.debug "Writing chunk #{chunk}"
         File.open(chunk, "wb") do |f|
           f << @file.read(@each_size)
