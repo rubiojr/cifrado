@@ -7,6 +7,7 @@ module Cifrado
     check_unknown_options!
 
     class_option :username
+    class_option :quiet
     class_option :password
     class_option :auth_url
 
@@ -21,12 +22,18 @@ module Cifrado
       Log.debug "HEAD #{url}"
 
       r = client.head url
+      path = ''
+      path << container if container
+      path = File.join(container, object) if object
+      
+      # Look for the hashed object in case it was encrypted
       if r.status == 404 and object
         file_hash = Digest::SHA2.new << object
-        url = "#{uri.to_s}/#{[container, file_hash].compact.join("/")}"
+        url = "#{uri.to_s}/#{path}"
         Log.debug "HEAD #{url}"
         r = client.head "#{url}"
       end
+
       if r.status == 404
         if object
           Log.error 'Object not found'
@@ -41,8 +48,7 @@ module Cifrado
           elsif k == 'X-Account-Bytes-Used' or k == 'Content-Length'
             puts "#{(k + ":").ljust(30)}#{v} (#{humanize_bytes(v)})" 
           elsif k == 'X-Object-Meta-Encrypted-Name'
-            format = "#{(k + ":").ljust(30)}#{v}"
-            puts format
+            puts "#{(k + ":").ljust(30)}#{v}"
           else
             puts "#{(k + ":").ljust(30)}#{v}" 
           end
@@ -57,6 +63,9 @@ module Cifrado
       Log.warn "Not implemented :("
     end
 
+    # @returns [Array] a list of Fog::OpenStack::File or
+    # Fog::OpenStack::Directory
+    #
     desc "list [CONTAINER]", "List containers and objects"
     option :insecure, :type => :boolean
     option :list_segments, :type => :boolean
@@ -167,6 +176,11 @@ module Cifrado
 
     private
     def client_instance(options)
+
+      if options[:quiet]
+        Log.level = Logger::WARN
+      end
+
       begin
         config = check_options options
         client = Cifrado::SwiftClient.new :username => config[:username], 
@@ -429,7 +443,6 @@ module Cifrado
             obj_path = File.basename(obj_path) 
           end
           Log.debug "Uploading segment #{obj_path} (#{segment_size} bytes)..."
-          puts File.exist? segment
           headers = {}
         end
 
