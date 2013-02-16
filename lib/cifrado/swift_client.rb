@@ -103,17 +103,42 @@ module Cifrado
     end
 
     def download(container, object = nil, options = {})
+      if object
+        download_object container, object, options
+      else
+        dir = service.directories.get container
+        unless dir
+          Log.debug "Container #{container} not found"
+          raise "Container #{container} not found"
+        end
+        dest_dir = options[:output]
+        dest_dir = Dir.pwd unless dest_dir
+        dir.files.each do |f|
+          # Skip segments from segmented uploads
+          if f.key =~ /segments\/\d+\.\d{2}\/\d+/
+            Log.debug "Skipping segment #{f.key}"
+            next
+          end
+          options[:output] = File.join(dest_dir, f.key)
+          target_dir = File.dirname options[:output] 
+          unless File.directory?(target_dir)
+            Log.debug "Creating target directory #{target_dir}"
+            FileUtils.mkdir_p(target_dir)
+          end
+          download_object container, f.key, options
+        end
+      end
+    end
+
+    private
+    def download_object(container, object, options = {})
       storage_url = @service.credentials[:server_management_url]
       auth_token  = @service.credentials[:token]
       storage_url << "/" unless storage_url =~ /\/$/
       object = object[1..-1] if object =~ /^\//
 
-      path = container
-      if object
-        path = File.join(container, object) 
-      else
-        raise NotImplementedError.new
-      end
+      raise ArgumentError.new "Invalid object" unless object
+      path = File.join(container, object)
 
       uri = URI.parse storage_url + path
       http = Net::HTTP.new(uri.host, uri.port)
@@ -169,7 +194,6 @@ module Cifrado
                           :status => res.code.to_i
     end
     
-    private
     def create_container(container, wait_for_it = false )
       dir = service.directories.create :key => container
       # Wait for the new container to be available

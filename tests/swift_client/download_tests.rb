@@ -28,10 +28,27 @@ Shindo.tests('Cifrado | SwiftClient#download') do
                           :output => output
       r.status == 200 and Digest::MD5.file(output) == md5
     end
-  end
 
-  # Cleanup
-  Dir["/tmp/cifrado-tests*"].each { |f| File.delete f }
-  cleanup
+    cleanup
+
+    test 'container' do
+      container = test_container
+      obj = create_bin_payload 1
+      obj2 = create_bin_payload 1
+      cli = Cifrado::CLI.new
+      cli.options = {
+        :insecure => true,
+        :segments => 3,
+        :no_progressbar => true
+      }
+      cli.upload container.key, obj
+      cli.upload container.key, obj2
+      sleep 5
+      output = "/tmp/cifrado-objects-#{SecureRandom.hex}"
+      FileUtils.mkdir output
+      client.download container.key, nil, :output => output
+      Dir["#{output}/**/*"].size == 3
+    end
+  end
 
 end
