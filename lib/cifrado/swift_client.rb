@@ -71,7 +71,6 @@ module Cifrado
       storage_url = @service.credentials[:server_management_url]
       auth_token  = @service.credentials[:token]
 
-      Log.debug "authentication OK"
       Log.debug "X-Storage-Url: #{storage_url}"
 
       create_container container, true
@@ -97,6 +96,77 @@ module Cifrado
                               :headers => res.to_hash,
                               :status => res.code.to_i
       r
+    end
+
+    def user_agent
+      "Cifrado #{Cifrado::VERSION}"
+    end
+
+    def download(container, object = nil, options = {})
+      storage_url = @service.credentials[:server_management_url]
+      auth_token  = @service.credentials[:token]
+      storage_url << "/" unless storage_url =~ /\/$/
+      object = object[1..-1] if object =~ /^\//
+
+      path = container
+      if object
+        path = File.join(container, object) 
+      else
+        raise NotImplementedError.new
+      end
+
+      uri = URI.parse storage_url + path
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true if uri.scheme == "https"
+      unless @connection_options[:ssl_verify_peer]
+        Log.debug "Disabling SSL verification"
+        http.verify_mode = OpenSSL::SSL::VERIFY_NONE 
+      end
+      #http.open_timeout = 10 # seconds
+      #http.read_timeout = 10 # seconds
+      Log.debug "Request URL #{uri.request_uri}"
+      request = Net::HTTP::Get.new(uri.request_uri)
+
+      headers = {
+        "User-Agent" => "#{user_agent}",
+        "X-Auth-Token" => auth_token
+      }
+
+      request.initialize_http_header headers
+
+      object = service.head_object container, object
+      size = object.headers['Content-Length']
+      
+      Log.warn "Unknown content_length for #{path}" if size.nil?
+      
+      dest_file = options[:output]
+      unless dest_file
+        dest_file = File.join Dir.pwd, + object
+      end
+      tmp_file = File.join Config.instance.cache_dir, "#{Time.now.to_f}.download"
+      Log.debug "Downloading file to tmp file #{tmp_file}"
+
+      res = http.request(request) do |response|
+        File.open(tmp_file, "wb") do |file|
+          response.read_body do |segment|
+            if options[:progress_callback]
+              options[:progress_callback].call segment.length
+            end
+            file.write(segment)
+          end
+        end
+      end
+
+      if res.is_a? Net::HTTPOK
+        Log.debug "Moving download tmp file to #{dest_file}"
+        FileUtils.mv tmp_file, dest_file
+      else
+        Log.debug "Download failed, deleting tmp file"
+        FileUtils.rm tmp_file 
+      end
+      Excon::Response.new :body => res.body,
+                          :headers => res.to_hash,
+                          :status => res.code.to_i
     end
     
     private
