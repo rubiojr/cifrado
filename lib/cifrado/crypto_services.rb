@@ -15,7 +15,7 @@ module Cifrado
     end
 
     def encrypt(file, output)
-      unless File.exist?(file)
+      unless file and File.exist?(file)
         raise ArgumentError.new "Invalid file #{file}"
       end
 
@@ -57,6 +57,41 @@ module Cifrado
         return false
       end
       true
+    end
+
+    def decrypt(file, output)
+      unless file and File.exist?(file)
+        raise ArgumentError.new "Invalid file #{file}"
+      end
+
+      if output.nil?
+        raise ArgumentError.new "Invalid output file path"
+      end
+
+      raise ArgumentError.new("#{@gpg_binary} not found") unless File.exist?(@gpg_binary)
+
+      Log.debug "Decrypting file #{file}..."
+      
+      if output != '-'
+        @gpg_extra_args << ["--output #{Shellwords.escape(output)}"]
+      end
+      
+      cmd = "#{@gpg_binary} #{@gpg_extra_args.join(' ')} --decrypt #{Shellwords.escape(file)}"
+      Log.debug "Decrypting with: #{cmd}"
+      out = `#{cmd} 2>&1`
+      
+      if $? != 0
+        Log.error out
+        raise "Failed to decrypt file #{file}"
+      else
+        if @options[:delete_source]
+          File.delete file 
+          Log.debug "Deleting encrypted file #{file}"
+        end
+      end
+
+      Log.debug out
+      output
     end
 
     private

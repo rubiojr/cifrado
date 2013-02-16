@@ -1,6 +1,38 @@
 Shindo.tests('Cifrado | CryptoServices') do
   
   obj = create_bin_payload 1
+  
+  tests('#decrypt') do
+
+    tests('asymmetric') do
+      test '1MB file' do
+        t1 = tmpfile
+        t2 = tmpfile
+        File.open(t1, 'w') { |f| f.puts 'foo' }
+        s = CryptoServices.new :type => :asymmetric,
+                               :recipient => 'rubiojr@frameos.org'
+        output = s.encrypt t1, "#{t1}.encrypted"
+        output = s.decrypt output, t2 
+        File.readlines(output).first.strip.chomp == 'foo' and \
+          t2 == output
+      end
+    end
+    
+    tests('symmetric') do
+      test '1MB file' do
+        t1 = tmpfile
+        t2 = tmpfile
+        File.open(t1, 'w') { |f| f.puts 'foo' }
+        s = CryptoServices.new :type => :symmetric,
+                               :passphrase => passphrase
+        output = s.encrypt t1, "#{t1}.encrypted"
+        output = s.decrypt output, t2 
+        File.readlines(output).first.strip.chomp == 'foo' and
+          t2 == output
+      end
+    end
+
+  end
 
   tests('#encrypt') do
 
@@ -43,14 +75,14 @@ Shindo.tests('Cifrado | CryptoServices') do
       test '1MB file' do
         obj = create_bin_payload 1
         s = CryptoServices.new :type => :symmetric,
-                               :passphrase => 'foobar'
+                               :passphrase => passphrase
         output = s.encrypt obj, "#{obj}.encrypted"
         CryptoServices.encrypted?("#{obj}.encrypted") and File.exist?(output)
       end
       test 'with encrypted name' do
         s = CryptoServices.new :type => :symmetric,
                                :encrypt_name => true,
-                               :passphrase => 'foobar'
+                               :passphrase => passphrase
         out = s.encrypt obj, "#{obj}" 
         out != obj and File.exist?(out)
       end
@@ -70,7 +102,7 @@ Shindo.tests('Cifrado | CryptoServices') do
   test 'symmetric encrypt to stdout' do
     obj = create_bin_payload 1
     s = CryptoServices.new :type => :symmetric,
-                           :passphrase => 'foobar',
+                           :passphrase => passphrase,
                            :gpg_extra_args => ['--armor']
     out = s.encrypt obj, "#{obj}.encrypted"
     out.match(/BEGIN PGP MESSAGE/m).nil?

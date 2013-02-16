@@ -2,6 +2,8 @@ require 'cifrado'
 require 'yaml'
 require 'securerandom'
 require 'fileutils'
+require 'digest/md5'
+
 include Cifrado
 
 def client
@@ -32,8 +34,13 @@ def clean_test_payloads
   end
 end
 
+def passphrase
+  'foobar'
+end
+
 def cleanup
   clean_test_payloads
+  Dir["/tmp/cifrado-tests*"].each { |f| File.delete f }
   dir = client.service.directories.get('cifrado-tests')
   if dir
     dir.files.each do |f|
@@ -43,7 +50,11 @@ def cleanup
   end
 end
 
+def tmpfile
+  "/tmp/cifrado-tests-#{SecureRandom.hex}"
+end
+
 at_exit do
-  puts 'fooooooooo'
+  puts "Cleaning up..."
   cleanup
 end

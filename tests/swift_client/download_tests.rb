@@ -1,8 +1,4 @@
-require 'securerandom'
-require 'digest/md5'
-
 Shindo.tests('Cifrado | SwiftClient#download') do
-
 
   tests "#download" do
     test "object" do
