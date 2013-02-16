@@ -402,7 +402,8 @@ module Cifrado
         target_manifest = File.basename(encrypted_output)
       else
         splitter = FileSplitter.new object, options[:segments]
-        target_manifest = (options[:strip_path] ? File.basename(object) : object)
+        target_manifest = (options[:strip_path] ? \
+                              File.basename(object) : object.gsub(/^\//, ''))
       end
 
       Log.info "Segmenting file, #{options[:segments]} segments..."
@@ -456,7 +457,7 @@ module Cifrado
       end
       
       # We need this for segmented uploads
-      Log.debug "Adding manifest #{object}"
+      Log.debug "Adding manifest #{target_manifest}"
       headers = {}
       if options[:encrypt]
         encrypted_name = encrypt_filename object, @config[:password]
