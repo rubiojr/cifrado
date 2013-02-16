@@ -12,6 +12,12 @@ def client
                             :connection_options => { :ssl_verify_peer => false }
 end
 
+def test_container
+  @container ||= begin
+    client.service.directories.create :key => 'cifrado-tests'
+  end
+end
+
 # Size in MB
 def create_bin_payload size
   tmp_file = "/tmp/cifrado-test-payload-#{SecureRandom.hex}"
@@ -35,4 +41,9 @@ def cleanup
     end
     dir.destroy
   end
+end
+
+at_exit do
+  puts 'fooooooooo'
+  cleanup
 end
