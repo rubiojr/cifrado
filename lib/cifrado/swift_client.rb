@@ -1,4 +1,5 @@
 require 'cifrado/streaming_uploader'
+require 'cifrado/streaming_downloader'
 
 module Cifrado 
   
@@ -140,31 +141,12 @@ module Cifrado
       raise ArgumentError.new "Invalid object" unless object
       path = File.join(container, object)
 
-      uri = URI.parse storage_url + path
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true if uri.scheme == "https"
-      unless @connection_options[:ssl_verify_peer]
-        Log.debug "Disabling SSL verification"
-        http.verify_mode = OpenSSL::SSL::VERIFY_NONE 
-      end
-      #http.open_timeout = 10 # seconds
-      #http.read_timeout = 10 # seconds
-      Log.debug "Request URL #{uri.request_uri}"
-      request = Net::HTTP::Get.new(uri.request_uri)
-
-      headers = {
-        "User-Agent" => "#{user_agent}",
-        "X-Auth-Token" => auth_token
-      }
-
-      request.initialize_http_header headers
-
-      obj_headers = service.head_object container, object
-      if obj_headers
-        size = obj_headers.headers['Content-Length']
-      end
-      
-      Log.warn "Unknown content_length for #{path}" if size.nil?
+      #obj_headers = service.head_object container, object
+      #if obj_headers
+      #  size = obj_headers.headers['Content-Length']
+      #end
+      #
+      #Log.warn "Unknown content_length for #{path}" if size.nil?
       
       dest_file = options[:output]
       unless dest_file
@@ -174,16 +156,14 @@ module Cifrado
       tmp_file = File.join Config.instance.cache_dir, "#{Time.now.to_f}.download"
       Log.debug "Downloading file to tmp file #{tmp_file}"
 
-      res = http.request(request) do |response|
-        File.open(tmp_file, "wb") do |file|
-          response.read_body do |segment|
-            if options[:progress_callback]
-              options[:progress_callback].call segment.length
-            end
-            file.write(segment)
-          end
-        end
-      end
+      headers = {
+        "User-Agent" => "#{user_agent}",
+        "X-Auth-Token" => auth_token
+      }
+      res = StreamingDownloader.get storage_url + path,
+                                    tmp_file,
+                                    :connection_options => @connection_options,
+                                    :headers => headers
 
       #
       # Try to decrypt the file if it was encrypted
