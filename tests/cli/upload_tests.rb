@@ -29,7 +29,6 @@ Shindo.tests('Cifrado | CLI#upload') do
         :no_progressbar => true
       }
       cli.upload 'cifrado-tests', obj
-      puts obj
       cli.stat('cifrado-tests', obj).is_a?(Hash)
     end
 
