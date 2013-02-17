@@ -2,11 +2,11 @@ Shindo.tests('Cifrado | FileSplitter') do
   
   obj = create_bin_payload 1
   obj10 = create_bin_payload 10
-  obj100 = create_bin_payload 100
+  obj100 = create_bin_payload 100*1024
 
   tests('#split') do
 
-    tests('10MB file') do
+    tests('10K file') do
       s = FileSplitter.new obj10, 10
       count = 1
       s.split.each do |chunk|
@@ -14,14 +14,14 @@ Shindo.tests('Cifrado | FileSplitter') do
           File.exist?(chunk)
         end
         test 'the chunk has the correct size' do
-          # Each chunk is 1MB
-          File.size(chunk) == 1024**2
+          # Each chunk is 1K
+          File.size(chunk) == 1024
         end
         count += 1
       end
     end
 
-    test 'split 1MB in 2' do
+    test 'split 1K in 2' do
       s = FileSplitter.new obj, 2
       s.split.size == 2
     end
