@@ -4,13 +4,15 @@ module Cifrado
     include Cifrado
     include Cifrado::Utils
 
+    attr_reader :config
+
     check_unknown_options!
 
     class_option :username
     class_option :quiet
     class_option :password
     class_option :auth_url
-    option :insecure, :type => :boolean, :desc => "Insecure SSL connections"
+    class_option :insecure, :type => :boolean, :desc => "Insecure SSL connections"
 
     desc "stat [CONTAINER] [OBJECT]", "Displays information for the account, container, or object."
     def stat(container = nil, object = nil)
