@@ -101,7 +101,7 @@ module Cifrado
               tags[:encrypted] = :red
               tags.each { |k,v| tag_string << set_color("[#{k.to_s}]",v) }
               puts "#{fname} #{tag_string}"
-              puts "  hash: #{f.key}"
+              puts "  hash: #{f.key}" if options[:display_hash]
             else
               tags.each { |k,v| tag_string << set_color("[#{k.to_s}]",v) }
               puts f.key + " #{tag_string}"
