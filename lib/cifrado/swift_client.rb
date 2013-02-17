@@ -124,6 +124,7 @@ module Cifrado
           end
           download_object container, f.key, options
         end
+        Excon::Response.new :status => 200
       end
     end
 

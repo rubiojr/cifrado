@@ -63,9 +63,27 @@ module Cifrado
     option :output
     def download(container, object = nil)
       client = client_instance options
-      client.download container, object, 
-                      :decrypt => options[:decrypt],
-                      :output => options[:output]
+      if object
+        Log.info "Downloading #{object}..."
+      else
+        Log.info "Downloading container files from #{container}"
+      end
+      r = client.download container, object, 
+                          :decrypt => options[:decrypt],
+                          :output => options[:output]
+      found = (r.status != 404)
+      if !found and object
+        Log.debug 'Trying to find hashed object name'
+        file_hash = (Digest::SHA2.new << object).to_s
+        r = client.download container, file_hash,
+                            :decrypt => options[:decrypt],
+                            :output => options[:output]
+        found = true if r.status == 200
+      end
+      unless found
+        Log.error "File #{object} not found in #{container}"
+        exit 1
+      end
     end
 
     # @returns [Array] a list of Fog::OpenStack::File or
