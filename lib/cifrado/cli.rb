@@ -256,7 +256,7 @@ module Cifrado
         Log.error "Double check the username, password and auth_url."
       rescue Excon::Errors::SocketError => e
         if e.message =~ /Unable to verify certificate/
-          Log.error "Unable to verify certificate."
+          Log.error "Unable to verify SSL certificate."
         end
       rescue Exception => e
         Log.error e.message
