@@ -10,7 +10,7 @@ module Cifrado
       http.use_ssl = true if uri.scheme == "https"
       copts = options[:connection_options]
       if copts[:ssl_verify_peer] == false
-        Log.warn "Downloading file with SSL verification DISABLED"
+        Log.debug "Downloading file with SSL verification DISABLED"
         http.verify_mode = OpenSSL::SSL::VERIFY_NONE 
       end
       #http.open_timeout = 10 # seconds

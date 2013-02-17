@@ -37,7 +37,7 @@ module Cifrado
         http.use_ssl = true if url.scheme == "https"
         
         if params[:ssl_verify_peer] == false
-          Log.warn "Uploading file with SSL verification DISABLED"
+          Log.debug "Uploading file with SSL verification DISABLED"
           http.verify_mode = OpenSSL::SSL::VERIFY_NONE 
         end
 
