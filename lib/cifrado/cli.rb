@@ -44,7 +44,7 @@ module Cifrado
         end
       else
         puts "Account:".ljust(30) + File.basename(uri.path)
-        r.headers.each do |k, v| 
+        r.headers.sort.each do |k, v| 
           if k == 'X-Timestamp'
             puts "#{(k + ":").ljust(30)}#{v} (#{unix_time(v)})" 
           elsif k == 'X-Account-Bytes-Used' or k == 'Content-Length'
