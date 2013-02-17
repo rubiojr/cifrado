@@ -70,6 +70,7 @@ module Cifrado
     option :insecure, :type => :boolean
     option :list_segments, :type => :boolean
     option :fast, :type => :boolean
+    option :display_hash, :type => :boolean
     def list(container = nil)
       client = client_instance options
       if container
@@ -95,6 +96,7 @@ module Cifrado
               tags[:encrypted] = :red
               tags.each { |k,v| tag_string << set_color("[#{k.to_s}]",v) }
               puts "#{fname} #{tag_string}"
+              puts "  hash: #{f.key}"
             else
               tags.each { |k,v| tag_string << set_color("[#{k.to_s}]",v) }
               puts f.key + " #{tag_string}"
