@@ -113,6 +113,9 @@ module Cifrado
           raise "Container #{container} not found"
         end
         dest_dir = options[:output] || Dir.pwd
+        unless File.directory?(dest_dir)
+          raise ArgumentError.new "Directory #{dest_dir} does not exist"
+        end
         dir.files.each do |f|
           # Skip segments from segmented uploads
           if f.key =~ /segments\/\d+\.\d{2}\/\d+/
