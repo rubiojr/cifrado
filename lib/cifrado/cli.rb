@@ -10,9 +10,9 @@ module Cifrado
     class_option :quiet
     class_option :password
     class_option :auth_url
+    option :insecure, :type => :boolean, :desc => "Insecure SSL connections"
 
     desc "stat [CONTAINER] [OBJECT]", "Displays information for the account, container, or object."
-    option :insecure, :type => :boolean
     def stat(container = nil, object = nil)
       client = client_instance options
       creds = client.service.credentials
@@ -58,7 +58,6 @@ module Cifrado
     end
 
     desc "download [CONTAINER] [OBJECT]", "Download container, objects"
-    option :insecure, :type => :boolean
     option :decrypt, :type => :boolean
     option :output
     def download(container, object = nil)
@@ -90,7 +89,6 @@ module Cifrado
     # Fog::OpenStack::Directory
     #
     desc "list [CONTAINER]", "List containers and objects"
-    option :insecure, :type => :boolean
     option :list_segments, :type => :boolean
     option :fast, :type => :boolean
     option :display_hash, :type => :boolean
@@ -132,7 +130,6 @@ module Cifrado
     end
 
     desc "container-add CONTAINER [DESCRIPTION]", "Create a container"
-    option :insecure, :type => :boolean
     def container_add(container, description = '')
       client = client_instance options
       client.service.directories.create :key => container, 
@@ -141,6 +138,40 @@ module Cifrado
 
     desc "delete CONTAINER [OBJECT]", "Delete specific container or object"
     def delete(container, object = nil)
+      client = client_instance options
+      begin
+        if object
+          Log.info "Deleting file #{object}..."
+          deleted = false
+          begin
+            client.service.delete_object container, object
+            deleted = true
+          rescue Fog::Storage::OpenStack::NotFound
+            Log.debug 'Trying to find hashed object name'
+            file_hash = (Digest::SHA2.new << object).to_s
+            deleted = client.service.delete_object(container, file_hash) rescue nil
+          end
+          if deleted
+            Log.info "File #{object} deleted"
+          else
+            Log.error "File #{object} not found"
+          end
+        else
+          Log.info "Deleting container #{container}..."
+          dir = client.service.directories.get(container)
+          if dir
+            dir.files.each do |f|
+              Log.debug "Deleting file #{f.key}..."
+              f.destroy
+            end
+            dir.destroy
+            Log.info "Container #{container} deleted"
+          end
+        end
+      rescue => e
+        Log.error e.message
+        Log.debug e.backtrace
+      end
     end
 
     desc "cache-clean", "Empty Cifrado's cache directory"
@@ -159,7 +190,6 @@ module Cifrado
 
     desc "set-acl CONTAINER", 'Set an ACL on containers and objects'
     option :acl, :type => :string, :required => true
-    option :insecure, :type => :boolean
     def set_acl(container, object = nil)
       client = client_instance options
       client.set_acl options[:acl], container
@@ -168,7 +198,6 @@ module Cifrado
     desc "upload CONTAINER FILE", "Upload a file"
     option :encrypt, :desc => 'Encrypt: a:recipient (asymmetric) or symmetric'
     option :segments, :type => :numeric, :desc => "Split the data in segments"
-    option :insecure, :type => :boolean, :desc => "Insecure SSL connections"
     option :strip_path, :type => :boolean
     option :no_progressbar,   :type => :boolean
     option :fast_progressbar, :type => :boolean
