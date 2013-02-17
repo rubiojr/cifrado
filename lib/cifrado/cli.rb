@@ -88,23 +88,17 @@ module Cifrado
               puts f.key
               next
             end
-            tags = {}
-            tag_string = ''
             # Skip segments
             next if f.key =~ /\/segments\/\d+\.\d{2}\/\d+\/\d+/ and \
                     not options[:list_segments]
 
             metadata = f.metadata
-            tags[:manifest] = :yellow if f.manifest
             if metadata[:encrypted_name] 
               fname = decrypt_filename metadata[:encrypted_name], @config[:password]
-              tags[:encrypted] = :red
-              tags.each { |k,v| tag_string << set_color("[#{k.to_s}]",v) }
-              puts "#{fname} #{tag_string}"
+              puts "#{fname.ljust(55)} #{set_color("[encrypted]",:red, :bold)}"
               puts "  hash: #{f.key}" if options[:display_hash]
             else
-              tags.each { |k,v| tag_string << set_color("[#{k.to_s}]",v) }
-              puts f.key + " #{tag_string}"
+              puts f.key.ljust(55)
             end
           end 
           files
@@ -190,6 +184,9 @@ module Cifrado
 
       begin
         config = check_options options
+        if options[:insecure]
+          Log.warn "SSL verification DISABLED"
+        end
         client = Cifrado::SwiftClient.new :username => config[:username], 
                                           :api_key  => config[:password],
                                           :auth_url => config[:auth_url],

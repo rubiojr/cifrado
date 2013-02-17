@@ -36,22 +36,14 @@ module Cifrado
         http = Net::HTTP.new(url.host, url.port)
         http.use_ssl = true if url.scheme == "https"
         
-        if RUBY_VERSION =~ /^1\.9/
+        if params[:ssl_verify_peer] == false
+          Log.warn "Uploading file with SSL verification DISABLED"
+          http.verify_mode = OpenSSL::SSL::VERIFY_NONE 
+        end
+
+        if RUBY_VERSION =~ /^1\./
           body_stream = MultipartStream.new(parts, block)
-          if params[:ssl_verify_peer] == false
-            Log.debug "Disabling SSL verification"
-            http.verify_mode = OpenSSL::SSL::VERIFY_NONE 
-          end
-        elsif RUBY_VERSION =~ /^1\.8/
-          body_stream = MultipartStream.new(parts, block)
-          if params[:ssl_verify_peer] == false
-            Log.debug "Disabling SSL verification"
-            http.verify_mode = OpenSSL::SSL::VERIFY_NONE 
-          end
         else # Assumed >= 2.0
-          if params[:ssl_verify_peer] == false
-            http.verify_mode = OpenSSL::SSL::VERIFY_NONE 
-          end
           body_stream = MultipartStreamV2.new(parts, block)
         end
         
