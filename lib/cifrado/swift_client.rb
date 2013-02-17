@@ -112,19 +112,15 @@ module Cifrado
           Log.debug "Container #{container} not found"
           raise "Container #{container} not found"
         end
-        dest_dir = options[:output]
-        dest_dir = Dir.pwd unless dest_dir
+        dest_dir = options[:output] || Dir.pwd
         dir.files.each do |f|
           # Skip segments from segmented uploads
           if f.key =~ /segments\/\d+\.\d{2}\/\d+/
             Log.debug "Skipping segment #{f.key}"
             next
           end
-          options[:output] = File.join(dest_dir, f.key)
-          target_dir = File.dirname options[:output] 
-          unless File.directory?(target_dir)
-            Log.debug "Creating target directory #{target_dir}"
-            FileUtils.mkdir_p(target_dir)
+          unless options[:decrypt] == true
+            options[:output] = File.join(dest_dir, f.key)
           end
           download_object container, f.key, options
         end
@@ -141,18 +137,16 @@ module Cifrado
       raise ArgumentError.new "Invalid object" unless object
       path = File.join(container, object)
 
-      #obj_headers = service.head_object container, object
-      #if obj_headers
-      #  size = obj_headers.headers['Content-Length']
-      #end
-      #
-      #Log.warn "Unknown content_length for #{path}" if size.nil?
-      
       dest_file = options[:output]
-      unless dest_file
+      if dest_file 
+        if File.directory?(dest_file)
+          dest_file = File.join dest_file, object
+        end
+      else
         Log.debug ":output option not specified, using current dir"
         dest_file = File.join Dir.pwd, object
       end
+
       tmp_file = File.join Config.instance.cache_dir, "#{Time.now.to_f}.download"
       Log.debug "Downloading file to tmp file #{tmp_file}"
 
@@ -177,6 +171,9 @@ module Cifrado
           Log.debug "Decrypted filename: #{decrypted_name}"
           if options[:output].nil?
             dest_file = File.join(Dir.pwd, decrypted_name)
+          elsif File.directory?(options[:output])
+            dest_file = File.join(options[:output], decrypted_name)
+          else
           end
           Log.debug "Decrypted file output: #{dest_file}"
           cs = CryptoServices.new

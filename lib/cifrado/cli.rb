@@ -59,8 +59,13 @@ module Cifrado
 
     desc "download [CONTAINER] [OBJECT]", "Download container, objects"
     option :insecure, :type => :boolean
+    option :decrypt, :type => :boolean
+    option :output
     def download(container, object = nil)
-      Log.warn "Not implemented :("
+      client = client_instance options
+      client.download container, object, 
+                      :decrypt => options[:decrypt],
+                      :output => options[:output]
     end
 
     # @returns [Array] a list of Fog::OpenStack::File or
