@@ -14,13 +14,13 @@ module Cifrado
     Log = Logger.new($stdout)
     Log.formatter = proc do |severity, datetime, progname, msg|
       if severity == 'ERROR'
-        "[Cifrado] #{shell.set_color(severity, :red, true)}: #{msg}\n"
+        "#{shell.set_color(severity, :red, true)}: #{msg}\n"
       elsif severity == 'WARN'
-        "[Cifrado] #{shell.set_color(severity, :yellow, true)}: #{msg}\n"
+        "#{shell.set_color(severity, :yellow, true)}: #{msg}\n"
       elsif severity == 'INFO'
         "#{msg}\n"
       else
-        "[Cifrado] #{severity}: #{msg}\n"
+        "#{severity}: #{msg}\n"
       end
     end
     Log.level = Logger::INFO unless ENV['DEBUG']
