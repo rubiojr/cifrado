@@ -159,14 +159,19 @@ module Cifrado
 
       request.initialize_http_header headers
 
-      object = service.head_object container, object
-      size = object.headers['Content-Length']
+      obj_headers = service.head_object container, object
+      if obj_headers
+        size = obj_headers.headers['Content-Length']
+      end
       
       Log.warn "Unknown content_length for #{path}" if size.nil?
       
       dest_file = options[:output]
       unless dest_file
-        dest_file = File.join Dir.pwd, + object
+        dest_file = File.join Dir.pwd, object
+        unless File.directory?(File.dirname(dest_file))
+          FileUtils.mkdir_p(File.dirname(dest_file))
+        end
       end
       tmp_file = File.join Config.instance.cache_dir, "#{Time.now.to_f}.download"
       Log.debug "Downloading file to tmp file #{tmp_file}"

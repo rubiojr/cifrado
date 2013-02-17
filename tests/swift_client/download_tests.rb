@@ -11,6 +11,22 @@ Shindo.tests('Cifrado | SwiftClient#download') do
                           :output => output
       r.status == 200 and Digest::MD5.file(output) == md5
     end
+
+    cwd = Dir.pwd
+    test "to current dir" do
+      obj = create_bin_payload 1
+      md5 = Digest::MD5.file obj
+      client.upload(test_container.key, obj) 
+      cwd = Dir.pwd
+      Dir.mkdir '/tmp/cifrado'
+      Dir.chdir '/tmp/cifrado'
+      r = client.download test_container.key,
+                          obj
+      file = File.join(Dir.pwd, obj)
+      Digest::MD5.file(file) == md5 
+    end
+    Dir.chdir cwd
+
     test 'segmented file' do
       obj = create_bin_payload 1
       md5 = Digest::MD5.file obj
@@ -51,4 +67,5 @@ Shindo.tests('Cifrado | SwiftClient#download') do
     end
   end
 
+  cleanup
 end
