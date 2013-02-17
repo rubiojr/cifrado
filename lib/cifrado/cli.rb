@@ -179,9 +179,7 @@ module Cifrado
     desc "cache-clean", "Empty Cifrado's cache directory"
     def cache_clean
       Log.info "Cleaning cache dir #{Config.instance.cache_dir}"
-      Dir["#{Config.instance.cache_dir}/*.encrypted"].each { |f| File.delete f }
-      Dir["#{Config.instance.cache_dir}/*-chunk-*"].each { |f| File.delete f }
-      Dir["#{Config.instance.cache_dir}/*.md5"].each { |f| File.delete f }
+      Dir["#{Config.instance.cache_dir}/*"].each { |f| File.delete f }
     end
 
     desc "setup", "Initial Cifrado configuration"
@@ -512,6 +510,7 @@ module Cifrado
                       :object_path => obj_path,
                       :progress_callback => cb
 
+        File.delete segment
         segments_added << obj_path
       end
       
