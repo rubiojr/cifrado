@@ -233,7 +233,7 @@ module Cifrado
     private
     def client_instance(options)
 
-      if options[:quiet]
+      if options[:quiet] and Log.level < Logger::WARN
         Log.level = Logger::WARN
       end
 
