@@ -81,8 +81,7 @@ module Cifrado
       out = `#{cmd} 2>&1`
       
       if $? != 0
-        Log.error out
-        raise "Failed to decrypt file #{file}"
+        raise "Failed to decrypt file #{file}\n#{out}"
       else
         if @options[:delete_source]
           File.delete file 
@@ -119,8 +118,7 @@ module Cifrado
       out = `#{cmd} 2>&1`
       
       if $? != 0
-        Log.error out
-        raise "Failed to encrypt file #{file}"
+        raise "Failed to encrypt file #{file}\n#{out}"
       else
         if @options[:delete_source]
           File.delete file 
@@ -139,8 +137,7 @@ module Cifrado
       out = `#{cmd} 2>&1`
       
       if $? != 0
-        Log.error out
-        raise "Failed to encrypt file #{file}"
+        raise "Failed to encrypt file #{file}\n#{out}"
       else
         if @options[:delete_source]
           File.delete file 

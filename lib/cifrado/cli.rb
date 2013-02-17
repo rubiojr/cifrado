@@ -165,14 +165,20 @@ module Cifrado
 
       tstart = Time.now
       uploaded = nil
-      if options[:segments]
-        uploaded = split_and_upload client, container, file, options
-      else
-        uploaded = upload_single client, container, file, options
+      begin
+        if options[:segments]
+          uploaded = split_and_upload client, container, file, options
+        else
+          uploaded = upload_single client, container, file, options
+        end
+        tend = Time.now
+        Log.info "Time taken #{(tend - tstart).round} s."
+        uploaded
+      rescue Exception => e
+        Log.error e.message
+        Log.debug e.backtrace.inspect
+        exit 1
       end
-      tend = Time.now
-      Log.info "Time taken #{(tend - tstart).round} s."
-      uploaded
     end
 
     private
