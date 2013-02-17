@@ -162,6 +162,7 @@ module Cifrado
       }
       res = StreamingDownloader.get storage_url + path,
                                     tmp_file,
+                                    :progress_callback => options[:progress_callback],
                                     :connection_options => @connection_options,
                                     :headers => headers
 
