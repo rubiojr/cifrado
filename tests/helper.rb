@@ -20,10 +20,10 @@ def test_container
   end
 end
 
-# Size in MB
+# Size in KB
 def create_bin_payload size
   tmp_file = "/tmp/cifrado-test-payload-#{SecureRandom.hex}"
-  `dd if=/dev/zero of=#{tmp_file} bs=1M count=#{size} > /dev/null 2>&1`
+  `dd if=/dev/zero of=#{tmp_file} bs=1K count=#{size} > /dev/null 2>&1`
   raise "Error creating #{size}MB binary payload" unless $? == 0
   tmp_file
 end
@@ -40,7 +40,7 @@ end
 
 def cleanup
   clean_test_payloads
-  Dir["/tmp/cifrado-tests*"].each { |f| File.delete f }
+  Dir["/tmp/cifrado*"].each { |f| FileUtils.rm_rf f }
   dir = client.service.directories.get('cifrado-tests')
   if dir
     dir.files.each do |f|
