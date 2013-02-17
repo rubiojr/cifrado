@@ -1,4 +1,11 @@
+include Cifrado::Utils
+
 Shindo.tests('Cifrado | CLI#upload') do
+
+  cli_options = {
+    :insecure => true,
+    :no_progressbar => true
+  }
 
   tests '#upload' do
     test 'segmented uploads' do
@@ -26,7 +33,7 @@ Shindo.tests('Cifrado | CLI#upload') do
       cli.stat('cifrado-tests', obj).is_a?(Hash)
     end
 
-    test 'encrypted uploads' do
+    tests 'encrypted uploads' do
       obj = create_bin_payload 1
       cli = Cifrado::CLI.new
       cli.options = {
@@ -35,10 +42,20 @@ Shindo.tests('Cifrado | CLI#upload') do
         :no_progressbar => true
       }
       obj_path = cli.upload 'cifrado-tests', obj
-      cli.stat('cifrado-tests', obj_path).is_a?(Hash)
+      test 'stat' do 
+        cli.stat('cifrado-tests', obj_path).is_a?(Hash)
+      end
+      test 'X-Object-Meta-Encrypted-Name' do
+        !cli.stat('cifrado-tests', obj_path)['X-Object-Meta-Encrypted-Name'].nil?
+      end
+      test 'decrypted name matches' do
+        header = cli.stat('cifrado-tests', obj_path)['X-Object-Meta-Encrypted-Name']
+        decrypted_name = decrypt_filename header, cli.config[:password]
+        decrypted_name == obj 
+      end
     end
     
-    test 'encrypted segmented uploads' do
+    tests 'encrypted segmented uploads' do
       obj = create_bin_payload 1
       cli = Cifrado::CLI.new
       cli.options = {
@@ -48,9 +65,35 @@ Shindo.tests('Cifrado | CLI#upload') do
         :no_progressbar => true
       }
       segments = cli.upload 'cifrado-tests', obj
-      cli.stat('cifrado-tests', segments.first).is_a?(Hash) and \
-        segments.size == 4 and \
-        (!segments.last.match(/segments\/\d+.\d{2}\/\d+\/3$/).nil?)
+      test 'stat' do
+        cli.stat('cifrado-tests', segments.first).is_a?(Hash) 
+      end
+      test 'segments number' do
+        segments.size == 4 
+      end
+      test 'segment name matches' do
+        !segments.last.match(/segments\/\d+.\d{2}\/\d+\/3$/).nil?
+      end
+      count = 0
+      segments.each do |s|
+        count += 1
+        test "segment #{s} has encryption header" do
+          !cli.stat('cifrado-tests', s)['X-Object-Meta-Encrypted-Name'].nil?
+        end
+        if count == 1
+          test "segment #{s} name can be decrypted" do
+            header = cli.stat('cifrado-tests', s)['X-Object-Meta-Encrypted-Name']
+            decrypted_name = decrypt_filename header, cli.config[:password]
+            decrypted_name == obj
+          end
+        else
+          test "segment #{s} name can be decrypted" do
+            header = cli.stat('cifrado-tests', s)['X-Object-Meta-Encrypted-Name']
+            decrypted_name = decrypt_filename header, cli.config[:password]
+            (decrypted_name =~ /#{obj}\/segments\//) == 0
+          end
+        end
+      end
     end
     
     test 'encrypted symmetric segmented uploads' do
@@ -81,6 +124,4 @@ Shindo.tests('Cifrado | CLI#upload') do
     end
   end
   
-  cleanup
-
 end

@@ -5,6 +5,10 @@ require 'fileutils'
 require 'digest/md5'
 
 include Cifrado
+  
+unless ENV['DEBUG']
+  Cifrado::Log.level = Logger::ERROR
+end
 
 def client
   conf = YAML.load_file File.expand_path("~/.cifradorc")
@@ -21,9 +25,17 @@ def test_container
 end
 
 # Size in KB
-def create_bin_payload size
-  tmp_file = "/tmp/cifrado-test-payload-#{SecureRandom.hex}"
-  `dd if=/dev/zero of=#{tmp_file} bs=1K count=#{size} > /dev/null 2>&1`
+def create_bin_payload size, filename = nil
+  if filename
+    tmp_file = filename
+  else
+    tmp_file = "/tmp/cifrado-test-payload-#{SecureRandom.hex}"
+  end
+  target_dir = File.dirname(tmp_file)
+  unless File.directory?(target_dir)
+    FileUtils.mkdir_p target_dir
+  end
+  out = `dd if=/dev/zero of=#{tmp_file} bs=1K count=#{size} > /dev/null 2>&1`
   raise "Error creating #{size}MB binary payload" unless $? == 0
   tmp_file
 end
@@ -42,20 +54,24 @@ def clean_test_payloads
   end
 end
 
-def passphrase
-  'foobar'
-end
-
-def cleanup
-  clean_test_payloads
-  Dir["/tmp/cifrado*"].each { |f| FileUtils.rm_rf f }
-  dir = client.service.directories.get('cifrado-tests')
+def clean_test_container
+  dir = client.service.directories.get test_container.key
   if dir
     dir.files.each do |f|
       f.destroy
     end
     dir.destroy
   end
+end
+
+def passphrase
+  'foobar'
+end
+
+def cleanup
+  clean_test_payloads
+  clean_test_container
+  Dir["/tmp/cifrado*"].each { |f| FileUtils.rm_rf f }
 end
 
 def tmpfile

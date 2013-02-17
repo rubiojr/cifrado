@@ -1,6 +1,10 @@
 Shindo.tests('Cifrado | SwiftClient#download') do
     
   cwd = Dir.pwd
+  cli_options = {
+    :insecure => true,
+    :no_progressbar => true
+  }
 
   tests "#download" do
     test "object" do
@@ -20,11 +24,9 @@ Shindo.tests('Cifrado | SwiftClient#download') do
         md5 = Digest::MD5.file obj
         output = "/tmp/cifrado-tests-#{SecureRandom.hex}"
         cli = Cifrado::CLI.new
-        cli.options = {
-          :insecure => true,
+        cli.options = cli_options.merge({
           :encrypt  => 'a:rubiojr',
-          :no_progressbar => true
-        }
+        })
         obj_path = cli.upload test_container.key, obj
         r = client.download test_container.key, 
                             obj_path,
@@ -42,11 +44,9 @@ Shindo.tests('Cifrado | SwiftClient#download') do
         Dir.mkdir output
         Dir.chdir output
         cli = Cifrado::CLI.new
-        cli.options = {
-          :insecure => true,
+        cli.options = cli_options.merge({
           :encrypt  => 'a:rubiojr',
-          :no_progressbar => true
-        }
+        })
         obj_path = cli.upload test_container.key, obj
         r = client.download test_container.key, 
                             obj_path,
@@ -65,10 +65,7 @@ Shindo.tests('Cifrado | SwiftClient#download') do
         Dir.mkdir output
         Dir.chdir output
         cli = Cifrado::CLI.new
-        cli.options = {
-          :insecure => true,
-          :no_progressbar => true
-        }
+        cli.options = cli_options
         obj_path = cli.upload test_container.key, obj
         r = client.download test_container.key, 
                             obj_path,
@@ -79,6 +76,62 @@ Shindo.tests('Cifrado | SwiftClient#download') do
           File.read(downloaded_file).strip.chomp == 'foobar'
       end
       Dir.chdir cwd
+
+      tests 'container' do
+        clean_test_container
+
+        container = test_container
+        obj = create_bin_payload 1
+        obj2 = create_bin_payload 1
+        obj3 = create_bin_payload 1, tmpfile + "/foo/bar/file1"
+        output = "/tmp/cifrado-objects-#{SecureRandom.hex}"
+        cli = Cifrado::CLI.new
+        cli.options = cli_options.merge({
+          :segments => 3,
+          :encrypt => "s:#{passphrase}"
+        })
+        [obj, obj2, obj3].each do |o|
+          cli.upload container.key, o
+        end
+        sleep 5
+        
+        raises ArgumentError, 'download to invalid dir' do
+          client.download container.key, 
+                          nil, 
+                          :output => output,
+                          :decrypt => true
+        end
+
+        tests "contents in #{output}" do
+          FileUtils.mkdir output
+          client.download container.key, 
+                          nil, 
+                          :output => output,
+                          :decrypt => true
+          [obj, obj2, obj3].each do |o|
+            test "includes #{o}" do
+              Dir["#{output}/**/*"].include?(File.join(output, obj))
+            end
+          end
+          test "file #{obj3} exist" do
+            File.exist?(File.join(output, obj3))
+          end
+        end
+
+        tests 'file MD5 digest' do
+          hashes = []
+          hashes << Digest::MD5.file(obj)
+          hashes << Digest::MD5.file(obj2)
+          hashes << Digest::MD5.file(obj3)
+          Dir["#{output}/**/*"].each do |f|
+            next if File.directory?(f)
+            digest = Digest::MD5.file(f)
+            test "includes #{digest}" do
+              hashes.include?(digest)
+            end
+          end
+        end
+      end
 
     end
 
@@ -100,11 +153,9 @@ Shindo.tests('Cifrado | SwiftClient#download') do
       obj = create_bin_payload 1
       md5 = Digest::MD5.file obj
       cli = Cifrado::CLI.new
-      cli.options = {
-        :insecure => true,
-        :segments => 3,
-        :no_progressbar => true
-      }
+      cli.options = cli_options.merge({
+        :segments => 3
+      })
       segments = cli.upload 'cifrado-tests', obj
       sleep 5
       output = "/tmp/cifrado-tests-#{SecureRandom.hex}"
@@ -121,11 +172,9 @@ Shindo.tests('Cifrado | SwiftClient#download') do
       obj = create_bin_payload 1
       obj2 = create_bin_payload 1
       cli = Cifrado::CLI.new
-      cli.options = {
-        :insecure => true,
+      cli.options = cli_options.merge({
         :segments => 3,
-        :no_progressbar => true
-      }
+      })
       cli.upload container.key, obj
       cli.upload container.key, obj2
       sleep 5
@@ -155,5 +204,4 @@ Shindo.tests('Cifrado | SwiftClient#download') do
     end
   end
 
-  cleanup
 end

@@ -1,5 +1,5 @@
 Shindo.tests('Cifrado | SwiftClient#upload') do
-  
+
   obj = create_bin_payload 1
 
   tests("#upload") do
