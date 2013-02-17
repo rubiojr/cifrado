@@ -168,10 +168,8 @@ module Cifrado
       
       dest_file = options[:output]
       unless dest_file
+        Log.debug ":output option not specified, using current dir"
         dest_file = File.join Dir.pwd, object
-        unless File.directory?(File.dirname(dest_file))
-          FileUtils.mkdir_p(File.dirname(dest_file))
-        end
       end
       tmp_file = File.join Config.instance.cache_dir, "#{Time.now.to_f}.download"
       Log.debug "Downloading file to tmp file #{tmp_file}"
@@ -187,8 +185,38 @@ module Cifrado
         end
       end
 
+      #
+      # Try to decrypt the file if it was encrypted
+      #
+      if options[:decrypt]
+        encrypted_name = res['X-Object-Meta-Encrypted-Name']
+        if encrypted_name
+          Log.debug 'Encrypted filename found, decrypting'
+          decrypted_name = decrypt_filename encrypted_name, @api_key
+          Log.debug "Decrypted filename: #{decrypted_name}"
+          if options[:output].nil?
+            dest_file = File.join(Dir.pwd, decrypted_name)
+          end
+          Log.debug "Decrypted file output: #{dest_file}"
+          cs = CryptoServices.new
+          tmp_file = cs.decrypt tmp_file, tmp_file + '.decrypted' 
+        else
+          Log.warn 'X-Object-Meta-Encrypted-Name header not found in object'
+          Log.warn 'Trying to decrypt anyways'
+        end
+      end
+
+      # if download is OK, move the file from cache to :output
+      # or to the current directory
       if res.is_a? Net::HTTPOK
         Log.debug "Moving download tmp file to #{dest_file}"
+        # Object name may have a path, create target directory 
+        # if not available
+        target_dir = File.dirname(dest_file)
+        unless File.directory?(target_dir)
+          Log.debug "Creating target directory #{target_dir}"
+          FileUtils.mkdir_p(target_dir)
+        end
         FileUtils.mv tmp_file, dest_file
       else
         Log.debug "Download failed, deleting tmp file"

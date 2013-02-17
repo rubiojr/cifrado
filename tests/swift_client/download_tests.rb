@@ -1,4 +1,6 @@
 Shindo.tests('Cifrado | SwiftClient#download') do
+    
+  cwd = Dir.pwd
 
   tests "#download" do
     test "object" do
@@ -11,8 +13,75 @@ Shindo.tests('Cifrado | SwiftClient#download') do
                           :output => output
       r.status == 200 and Digest::MD5.file(output) == md5
     end
+    
+    tests "download and decrypt" do
+      test 'with output option' do
+        obj = create_text_payload 'foobar'
+        md5 = Digest::MD5.file obj
+        output = "/tmp/cifrado-tests-#{SecureRandom.hex}"
+        cli = Cifrado::CLI.new
+        cli.options = {
+          :insecure => true,
+          :encrypt  => 'a:rubiojr',
+          :no_progressbar => true
+        }
+        obj_path = cli.upload test_container.key, obj
+        r = client.download test_container.key, 
+                            obj_path,
+                            :output => output,
+                            :decrypt => true
+        r.status == 200 and \
+          Digest::MD5.file(output) == md5 and \
+          File.read(output).strip.chomp == 'foobar'
+      end
 
-    cwd = Dir.pwd
+      test 'witout output' do
+        obj = create_text_payload 'foobar'
+        md5 = Digest::MD5.file obj
+        output = "/tmp/cifrado-tests-#{SecureRandom.hex}"
+        Dir.mkdir output
+        Dir.chdir output
+        cli = Cifrado::CLI.new
+        cli.options = {
+          :insecure => true,
+          :encrypt  => 'a:rubiojr',
+          :no_progressbar => true
+        }
+        obj_path = cli.upload test_container.key, obj
+        r = client.download test_container.key, 
+                            obj_path,
+                            :decrypt => true
+        downloaded_file = File.join(output, obj)
+        r.status == 200 and \
+          Digest::MD5.file(downloaded_file) == md5 and \
+          File.read(downloaded_file).strip.chomp == 'foobar'
+      end
+      Dir.chdir cwd
+
+      test 'not really encrypted' do
+        obj = create_text_payload 'foobar'
+        md5 = Digest::MD5.file obj
+        output = "/tmp/cifrado-tests-#{SecureRandom.hex}"
+        Dir.mkdir output
+        Dir.chdir output
+        cli = Cifrado::CLI.new
+        cli.options = {
+          :insecure => true,
+          :no_progressbar => true
+        }
+        obj_path = cli.upload test_container.key, obj
+        r = client.download test_container.key, 
+                            obj_path,
+                            :decrypt => true
+        downloaded_file = File.join(output, obj)
+        r.status == 200 and \
+          Digest::MD5.file(downloaded_file) == md5 and \
+          File.read(downloaded_file).strip.chomp == 'foobar'
+      end
+      Dir.chdir cwd
+
+    end
+
     test "to current dir" do
       obj = create_bin_payload 1
       md5 = Digest::MD5.file obj

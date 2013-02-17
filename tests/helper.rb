@@ -28,6 +28,14 @@ def create_bin_payload size
   tmp_file
 end
 
+def create_text_payload text
+  tmp_file = "/tmp/cifrado-test-payload-#{SecureRandom.hex}"
+  File.open tmp_file, 'w' do |f|
+    f.puts text
+  end
+  tmp_file
+end
+
 def clean_test_payloads
   Dir["/tmp/cifrado-test-payload-*"].each do |f|
     File.delete f
