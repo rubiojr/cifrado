@@ -35,7 +35,7 @@ def create_bin_payload size, filename = nil
   unless File.directory?(target_dir)
     FileUtils.mkdir_p target_dir
   end
-  out = `dd if=/dev/zero of=#{tmp_file} bs=1K count=#{size} > /dev/null 2>&1`
+  out = `dd if=/dev/urandom of=#{tmp_file} bs=1K count=#{size} > /dev/null 2>&1`
   raise "Error creating #{size}MB binary payload" unless $? == 0
   tmp_file
 end
@@ -72,6 +72,7 @@ def cleanup
   clean_test_payloads
   clean_test_container
   Dir["/tmp/cifrado*"].each { |f| FileUtils.rm_rf f }
+  Dir[File.join(ENV['HOME'], ".cache/cifrado") + "/*segments*"].each { |f| FileUtils.rm_rf f }
 end
 
 def tmpfile

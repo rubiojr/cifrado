@@ -9,7 +9,7 @@ Shindo.tests('Cifrado | CLI#upload') do
 
   tests '#upload' do
     test 'segmented uploads' do
-      obj = create_bin_payload 1
+      obj = create_bin_payload 1*1024
       cli = Cifrado::CLI.new
       cli.options = {
         :insecure => true,
@@ -19,7 +19,7 @@ Shindo.tests('Cifrado | CLI#upload') do
       segments = cli.upload 'cifrado-tests', obj
       cli.stat('cifrado-tests', obj).is_a?(Hash) and \
         segments.size == 4 and \
-        (!segments.last.match(/segments\/\d+.\d{2}\/\d+\/3$/).nil?)
+        (!segments.last.match(/segments\/\d+.\d{2}\/\d+\/00000003$/).nil?)
     end
     test 'single uploads' do
       obj = create_bin_payload 1
@@ -55,7 +55,7 @@ Shindo.tests('Cifrado | CLI#upload') do
     end
     
     tests 'encrypted segmented uploads' do
-      obj = create_bin_payload 1
+      obj = create_bin_payload 1*1024
       cli = Cifrado::CLI.new
       cli.options = {
         :insecure => true,
@@ -67,11 +67,15 @@ Shindo.tests('Cifrado | CLI#upload') do
       test 'stat' do
         cli.stat('cifrado-tests', segments.first).is_a?(Hash) 
       end
+      # If the file size after encryption (GPG uses compression by default)
+      # is smaller than 4096*3, the number of segments will be less than 3
+      # in this case, so the following test will not work.
       test 'segments number' do
-        segments.size == 4 
+        # 1 plus manifest
+        segments.size == 4
       end
       test 'segment name matches' do
-        !segments.last.match(/segments\/\d+.\d{2}\/\d+\/3$/).nil?
+        !segments.last.match(/segments\/\d+.\d{2}\/\d+\/00000003$/).nil?
       end
       count = 0
       segments.each do |s|
@@ -96,7 +100,7 @@ Shindo.tests('Cifrado | CLI#upload') do
     end
     
     test 'encrypted symmetric segmented uploads' do
-      obj = create_bin_payload 1
+      obj = create_bin_payload 1*1024
       cli = Cifrado::CLI.new
       cli.options = {
         :insecure => true,
@@ -107,7 +111,7 @@ Shindo.tests('Cifrado | CLI#upload') do
       segments = cli.upload 'cifrado-tests', obj
       cli.stat('cifrado-tests', segments.first).is_a?(Hash) and \
         segments.size == 4 and \
-        (!segments.last.match(/segments\/\d+.\d{2}\/\d+\/3$/).nil?)
+        (!segments.last.match(/segments\/\d+.\d{2}\/\d+\/00000003$/).nil?)
     end
     
     test 'encrypted symmetric uploads' do
