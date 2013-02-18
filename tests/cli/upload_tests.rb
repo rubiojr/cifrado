@@ -17,9 +17,16 @@ Shindo.tests('Cifrado | CLI#upload') do
         :no_progressbar => true
       }
       segments = cli.upload 'cifrado-tests', obj
-      cli.stat('cifrado-tests', obj).is_a?(Hash) and \
-        segments.size == 4 and \
-        (!segments.last.match(/segments\/\d+.\d{2}\/\d+\/00000003$/).nil?)
+      test "#{test_container.key} is a Hash" do
+        cli.stat('cifrado-tests', obj).is_a?(Hash) 
+      end
+      test "uploaded 4 segments" do
+        segments.size == 4 
+      end
+      test "segment matches /segments/..." do
+        puts segments.last
+        !segments.last.match(/segments\/\d+.\d{2}\/\d+\/00000003$/).nil?
+      end
     end
     test 'single uploads' do
       obj = create_bin_payload 1
