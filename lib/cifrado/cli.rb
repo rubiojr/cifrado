@@ -406,7 +406,7 @@ module Cifrado
 
       splitter = FileSplitter.new out, options[:segments]
 
-      if options[:encryption]
+      if options[:encrypt]
         target_manifest = File.basename(out)
       else
         target_manifest = (options[:strip_path] ? \
