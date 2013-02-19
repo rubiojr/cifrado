@@ -44,7 +44,6 @@ module Cifrado
         if byte_count >= @each_size
           chunk_f.close
           chunks << chunk
-          chunk_f.flush
           yield chunk_n, chunk if block_given?
           chunk_n += 1
           chunk = File.join(@cache_dir, "#{chunk_name}#{'%08d' % chunk_n}")
