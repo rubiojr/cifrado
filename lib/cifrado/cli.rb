@@ -288,7 +288,7 @@ module Cifrado
         Log.error set_color("Unauthorized.", :red, true)
         Log.error "Double check the username, password and auth_url."
       rescue Excon::Errors::SocketError => e
-        if e.message =~ /Unable to verify certificate|hostname does not match the server/
+        if e.message =~ /Unable to verify certificate|hostname (was|does) not match (with )?the server/
           Log.error "Unable to verify SSL certificate."
           Log.error "If the server is using a self-signed certificate, try using --insecure."
           Log.error "Please be aware of the security implications."
