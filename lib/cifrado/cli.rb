@@ -131,8 +131,8 @@ module Cifrado
       end
     end
 
-    desc "container-add CONTAINER [DESCRIPTION]", "Create a container"
-    def container_add(container, description = '')
+    desc "post CONTAINER [DESCRIPTION]", "Create a container"
+    def post(container, description = '')
       client = client_instance
       client.service.directories.create :key => container, 
                                         :description => description
@@ -184,8 +184,45 @@ module Cifrado
 
     desc "setup", "Initial Cifrado configuration"
     def setup
-      check_options options
+      config_file = File.join(ENV['HOME'], '.cifradorc')
+      if File.exist?(config_file)
+        Log.warn "Config file #{set_color config_file, :bold} already exist."
+        unless yes? "Continue?"
+          return
+        end
+      end
+
+      config = {}
+
+      puts "Running cifrado setup..."
+      puts "Please provide OpenStack/Rackspace credentials."
+      puts
+      puts "Cifrado can save this settings in #{ENV['HOME']}/.cifradorc"
+      puts "for later use."
+      puts "The settings (password included) are saved unencrypted."
+      puts
+      config[:username] = ask(set_color('Username:', :bold))
+      system 'stty -echo -icanon'
+      config[:password] = ask(set_color 'Password:', :bold)
+      system 'stty echo icanon'
+      puts
+      config[:auth_url] = ask(set_color 'Auth URL:', :bold)
+
+      if yes? "Do you want to save these settings?"
+        if File.exist?(config_file)
+          backup = "#{config_file}.bak.#{Time.now.to_i}"
+          FileUtils.cp config_file, backup
+          Log.info "Saving backup file to #{backup}."
+        end
+        File.open(config_file, 'w') do |f| 
+          f.puts config.to_yaml
+          f.chmod 0600
+        end
+        @settings_saved = true
+      end
+
       Log.debug "Setup done"
+      config
     end
 
     desc "set-acl CONTAINER", 'Set an ACL on containers and objects'
@@ -259,6 +296,8 @@ module Cifrado
           Log.error e.message
         end
         Log.debug e.backtrace.inspect
+      rescue SystemExit => e
+        # pass
       rescue Exception => e
         Log.error e.message
         Log.debug e.backtrace.inspect
@@ -285,36 +324,14 @@ module Cifrado
         end
       end
 
-      config[:username] = options[:username] || config[:username] || ask('username:')
-      if options[:password] or config[:password]
-        config[:password] = options[:password] || config[:password]
-      else
-        system 'stty -echo -icanon'
-        config[:password] = ask('password:')
-        system 'stty echo icanon'
-        puts
-      end
-      config[:auth_url] = options[:auth_url] || config[:auth_url] || ask('auth_url:')
-
-      unless File.exist?(config_file)
-        puts
-        puts "Cifrado can save this settings in #{ENV['HOME']}/.cifradorc"
-        puts "for later use."
-        puts "The settings (password included) are saved unencrypted."
-        puts
-        if yes? "Do you want to save these settings?"
-          File.open(config_file, 'w') do |f| 
-            f.puts config.to_yaml
-            f.chmod 0600
-          end
-          @settings_saved = true
-        end
-      end
-
-      if original_config != config and !@settings_saved
-        puts "username, password and/or auth_url changed"
-        if yes? "Do you want to save the NEW settings?"
-          File.open(config_file, 'w') { |f| f.puts config.to_yaml }
+      config[:username] = options[:username] || config[:username]
+      config[:password] = options[:password] ||config[:password]
+      config[:auth_url] = options[:auth_url] || config[:auth_url] 
+      [:username, :password, :auth_url].each do |opt|
+        if config[opt].nil?
+          Log.error "#{opt.to_s.capitalize} not provided."
+          Log.error "Use --#{opt.to_s.gsub('_', '-')} option or run 'cifrado setup' first."
+          exit 1
         end
       end
 
