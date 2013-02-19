@@ -7,6 +7,7 @@ require 'fileutils'
 require 'securerandom'
 require 'cifrado/config'
 require 'cifrado/utils'
+require 'cifrado/cli/progressbar'
 
 module Cifrado
   

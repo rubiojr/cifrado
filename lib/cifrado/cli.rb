@@ -16,7 +16,7 @@ module Cifrado
 
     desc "stat [CONTAINER] [OBJECT]", "Displays information for the account, container, or object."
     def stat(container = nil, object = nil)
-      client = client_instance options
+      client = client_instance
       creds = client.service.credentials
 
       uri = URI.parse creds[:server_management_url]
@@ -63,7 +63,7 @@ module Cifrado
     option :decrypt, :type => :boolean
     option :output
     def download(container, object = nil)
-      client = client_instance options
+      client = client_instance
       if object
         Log.info "Downloading #{object}..."
       else
@@ -95,7 +95,7 @@ module Cifrado
     option :fast, :type => :boolean
     option :display_hash, :type => :boolean
     def list(container = nil)
-      client = client_instance options
+      client = client_instance
       if container
         dir = client.service.directories.get container
         if dir
@@ -133,14 +133,14 @@ module Cifrado
 
     desc "container-add CONTAINER [DESCRIPTION]", "Create a container"
     def container_add(container, description = '')
-      client = client_instance options
+      client = client_instance
       client.service.directories.create :key => container, 
                                         :description => description
     end
 
     desc "delete CONTAINER [OBJECT]", "Delete specific container or object"
     def delete(container, object = nil)
-      client = client_instance options
+      client = client_instance
       begin
         if object
           Log.info "Deleting file #{object}..."
@@ -191,7 +191,7 @@ module Cifrado
     desc "set-acl CONTAINER", 'Set an ACL on containers and objects'
     option :acl, :type => :string, :required => true
     def set_acl(container, object = nil)
-      client = client_instance options
+      client = client_instance
       client.set_acl options[:acl], container
     end
 
@@ -199,24 +199,22 @@ module Cifrado
     option :encrypt, :desc => 'Encrypt: a:recipient (asymmetric) or symmetric'
     option :segments, :type => :numeric, :desc => "Split the data in segments"
     option :strip_path, :type => :boolean
-    option :no_progressbar,   :type => :boolean
-    option :fast_progressbar, :type => :boolean
+    option :progressbar, :default => :fancy
     def upload(container, file)
       unless File.exist?(file)
         Log.error "File '#{file}' does not exist"
         exit 1
       end
 
-      client = client_instance options
-      ENV['CIFRADO_FAST_PROGRESSBAR'] = 'yes' if options[:fast_progressbar]
+      client = client_instance 
 
       tstart = Time.now
       uploaded = nil
       begin
         if options[:segments]
-          uploaded = split_and_upload client, container, file, options
+          uploaded = split_and_upload client, container, file
         else
-          uploaded = upload_single client, container, file, options
+          uploaded = upload_single client, container, file
         end
         tend = Time.now
         Log.info "Time taken #{(tend - tstart).round} s."
@@ -229,14 +227,14 @@ module Cifrado
     end
 
     private
-    def client_instance(options)
+    def client_instance
 
       if options[:quiet] and Log.level < Logger::WARN
         Log.level = Logger::WARN
       end
 
       begin
-        config = check_options options
+        config = check_options
         if options[:insecure]
           Log.warn "SSL verification DISABLED"
         end
@@ -265,7 +263,7 @@ module Cifrado
       exit 1
     end
 
-    def check_options(options)
+    def check_options
       config_file = File.join(ENV['HOME'], '.cifradorc')
       config = {}
 
@@ -318,19 +316,17 @@ module Cifrado
       config
     end
 
-    def upload_single(client, container, object, options)
+    def upload_single(client, container, object)
       fsize = File.size(object)
       fbasename = File.basename(object)
       Log.info "Uploading #{fbasename} (#{humanize_bytes(fsize)})"
-      unless options[:no_progressbar]
-        cb = progressbar_callback(1, 1)
-      else
-        cb = nil
-      end
+
+      pb = Progressbar.new 1, 1, :style => options[:progressbar]
+
       config = Cifrado::Config.instance
       object_path = object
       object_path = File.basename(object) if options[:strip_path]
-      if cs = needs_encryption(options)
+      if cs = needs_encryption
         encrypted_file = File.join(config.cache_dir, File.basename(object))
         Log.debug "Writing encrypted file to #{encrypted_file}"
         encrypted_output = cs.encrypt object, 
@@ -342,75 +338,19 @@ module Cifrado
                         'X-Object-Meta-Encrypted-Name' => encrypted_name
                       },
                       :object_path => File.basename(encrypted_output),
-                      :progress_callback => cb
+                      :progress_callback => pb.block
         object_path = File.basename(encrypted_output)
         File.delete encrypted_output 
       else
         client.upload container, 
                       object,
                       :object_path => object_path,
-                      :progress_callback => cb
+                      :progress_callback => pb.block
       end
       object_path
     end
 
-    # FIXME: needs refactoring
-    def progressbar_callback(total = 0, count = 0)
-      @progressbar_count = 0 
-      @progressbar_finished = false
-      Log.debug "Calling progressbar_callback"
-
-      if ENV['CIFRADO_FAST_PROGRESSBAR']
-        if total != 1
-          title = "[#{count}/#{total}]"
-        else
-          title = ""
-        end
-        #Log.warn 'Using dummy progressbar callback'
-        return Proc.new do |tbytes, bytes, nchunk| 
-          @progressbar_count += bytes
-          percentage = ((@progressbar_count*100.0/tbytes))
-          if ((percentage % 10) < 0.1) and @progressbar_count <= tbytes
-            print "\r"
-            print "Progress (#{percentage.round}%) #{title}: "
-            print '.' * (percentage/10).floor
-          end
-          if (@progressbar_count + bytes) >= tbytes and !@progressbar_finished
-            @progressbar_finished = true
-            percentage = 100
-            print "\r"
-            print "Progress (#{percentage.round}%) #{title}: "
-            print '.' * (percentage/10).floor
-            puts
-          end
-        end
-      end
-
-      title = (total == 1 ? 'Progress' : "Segment [#{count}/#{total}]")
-
-      if RUBY_VERSION =~ /1\.8/
-        # See https://github.com/jfelchner/ruby-progressbar/pull/25
-        Log.warn "Progressbar performance is very poor under Ruby 1.8"
-        Log.warn "If you are getting low throughtput when uploading"
-        Log.warn  "upgrade to Ruby 1.9.X or use --no-progressbar"
-      end
-      require 'ruby-progressbar'
-      @progressbar = ProgressBar.create :title => title, :total => 100
-      cb = Proc.new do |total, bytes, nchunk| 
-        @progressbar_count += bytes
-        unless @progressbar_count > total
-          increment = (bytes*100.0)/total
-          percentage = ((@progressbar_count*100.0/total)).round
-          @progressbar.title = "#{title} (#{percentage}%)"
-          @progressbar.progress += increment 
-          if (@progressbar_count + bytes) >= total
-            @progressbar.finish
-          end
-        end
-      end
-    end
-
-    def needs_encryption(options)
+    def needs_encryption
       return nil unless options[:encrypt]
 
       tokens = options[:encrypt].split(':')
@@ -446,49 +386,47 @@ module Cifrado
       end
     end
 
+    def encrypt_if_required(file)
+      if cs = needs_encryption
+        Log.debug "Encrypting object #{file}"
+        cache_dir = Cifrado::Config.instance.cache_dir
+        encrypted_output = cs.encrypt file, 
+                                      File.join(cache_dir, File.basename(file))
+      else
+        file
+      end
+    end
+
     # FIXME: needs refactoring
-    def split_and_upload(client, container, object, options)
+    def split_and_upload(client, container, object)
       fbasename = File.basename(object)
 
-      if cs = needs_encryption(options)
-        Log.debug "Encrypting object #{object}"
-        cache_dir = Cifrado::Config.instance.cache_dir
-        encrypted_output = cs.encrypt object, 
-                                      File.join(cache_dir, File.basename(object))
-        splitter = FileSplitter.new encrypted_output, options[:segments]
-        target_manifest = File.basename(encrypted_output)
+      # Encrypts the file if required
+      out = encrypt_if_required(object)
+
+      splitter = FileSplitter.new out, options[:segments]
+
+      if options[:encryption]
+        target_manifest = File.basename(out)
       else
-        splitter = FileSplitter.new object, options[:segments]
         target_manifest = (options[:strip_path] ? \
                               File.basename(object) : object.gsub(/^\//, ''))
       end
 
       Log.info "Segmenting file, #{options[:segments]} segments..."
-      segments = splitter.split
-
       Log.info "Uploading #{fbasename} segments"
-      if options[:encrypt]
-        Log.info "Target object hash:"
-        Log.info "#{target_manifest}"
-      end
-      count = 0
-      segments_added = []
-      segments.each do |segment|
-        count += 1
+
+      segments_uploaded = []
+      splitter.split do |n, segment|
         segment_size = File.size segment
         hsegment_size = humanize_bytes segment_size
+        Log.info "Uploading segment #{n}/#{options[:segments]} (#{hsegment_size})"
 
-        unless options[:no_progressbar]
-          cb = progressbar_callback(segments.size, count)
-        else
-          Log.info "Uploading segment #{count}/#{segments.size} (#{hsegment_size})"
-          cb = nil
-        end
-        segment_number = segment.split(splitter.chunk_suffix.gsub('/','-')).last
+        segment_number = "%08d" % n
         if options[:encrypt]
-          Log.debug "Stripping path from encrypted segment #{encrypted_output}"
           suffix = splitter.chunk_suffix + segment_number
-          obj_path = File.basename(encrypted_output) + suffix
+          obj_path = File.basename(out) + suffix
+          Log.debug "Encrypted object path: #{obj_path}"
           encrypted_name = encrypt_filename object + suffix,
                                             @config[:password]
           headers = { 
@@ -496,22 +434,27 @@ module Cifrado
           }
         else
           obj_path = object + splitter.chunk_suffix + segment_number
-          Log.debug "Stripping path from segment #{obj_path}"
+          Log.debug "Unencrypted object path #{obj_path}"
           if options[:strip_path]
             obj_path = File.basename(obj_path) 
+            Log.debug "Stripping path from object: #{obj_path}"
           end
           Log.debug "Uploading segment #{obj_path} (#{segment_size} bytes)..."
           headers = {}
         end
 
+        pb = Progressbar.new options[:segments],
+                             n,
+                             :style => options[:progressbar]
+
         client.upload container, 
                       segment,
                       :headers => headers,
                       :object_path => obj_path,
-                      :progress_callback => cb
+                      :progress_callback => pb.block
 
         File.delete segment
-        segments_added << obj_path
+        segments_uploaded << obj_path
       end
       
       # We need this for segmented uploads
@@ -524,14 +467,14 @@ module Cifrado
       client.service.put_object_manifest container, 
                                          target_manifest,
                                          headers  
-      segments_added.insert 0, target_manifest
+      segments_uploaded.insert 0, target_manifest
 
       # Delete temporal encrypted file created by GPG
       if options[:encrypt]
-        Log.debug "Deleting temporal encrypted file #{encrypted_output}"
-        File.delete encrypted_output
+        Log.debug "Deleting temporal encrypted file #{out}"
+        File.delete out 
       end
-      segments_added
+      segments_uploaded
     end
 
   end
