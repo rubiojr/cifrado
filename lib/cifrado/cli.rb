@@ -66,31 +66,51 @@ module Cifrado
     option :progressbar, :default => :fancy
     def download(container, object = nil)
       client = client_instance
-      if object
-        Log.info "Downloading #{object}..."
-      else
-        Log.info "Downloading container files from #{container}"
-      end
-      pb = Progressbar.new 1, 1, :style => options[:progressbar]
-      r = client.download container, object, 
-                          :decrypt => options[:decrypt],
-                          :passphrase => options[:passphrase],
-                          :output => options[:output],
-                          :progress_callback => pb.block
-      found = (r.status != 404)
-      if !found and object
-        Log.debug 'Trying to find hashed object name'
-        file_hash = (Digest::SHA2.new << object).to_s
-        r = client.download container, file_hash,
-                            :decrypt => options[:decrypt],
-                            :passphrase => options[:passphrase],
-                            :output => options[:output],
-                            :progress_callback => pb.block
-        found = true if r.status == 200
-      end
-      unless found
-        Log.error "File #{object} not found in #{container}"
-        exit 1
+      files = []
+      begin
+        if object
+          Log.info "Downloading #{object}..."
+          files << object
+        else
+          Log.info "Downloading container files from #{container}"
+          dir = client.service.directories.get(container)
+          files = dir.files if dir
+        end
+        pb = Progressbar.new 1, 1, :style => options[:progressbar]
+        found = nil
+        files.each do |f|
+          if !f.is_a?(String) and f.metadata[:encrypted_name]
+            fname = decrypt_filename f.metadata[:encrypted_name], @config[:password]
+            Log.info "Downloading file #{fname}"
+            f = f.key
+          else
+            Log.info "Downloading file #{f}"
+          end
+          r = client.download container, f,
+                              :decrypt => options[:decrypt],
+                              :passphrase => options[:passphrase],
+                              :output => options[:output],
+                              :progress_callback => pb.block 
+          found = (r.status != 404)
+          if !found and object
+            Log.debug 'Trying to find hashed object name'
+            file_hash = (Digest::SHA2.new << f).to_s
+            r = client.download container, file_hash,
+                                :decrypt => options[:decrypt],
+                                :passphrase => options[:passphrase],
+                                :output => options[:output],
+                                :progress_callback => pb.block 
+            found = true if r.status == 200
+          end
+        end
+        unless found
+          Log.error "File #{object} not found in #{container}"
+          exit 1
+        end
+      rescue SystemExit
+      rescue => e
+        Log.error e.message
+        Log.debug e.backtrace.inspect
       end
     end
 
