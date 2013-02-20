@@ -25,13 +25,15 @@ module Cifrado
       require 'ruby-progressbar'
       title = (@segments == 1 ? \
                'Progress' : "Segment [#{@current_segment}/#{@segments}]")
-      progressbar = ProgressBar.create :title => title, :total => 100,
-                                       :format => '%t: |%B| %p%% [%E ]'
-
+      progressbar = nil
       read = 0
       percentage = 0
       time = Time.now.to_f
       Proc.new do |total, bytes, nchunk| 
+        unless progressbar
+          progressbar = ProgressBar.create :title => title, :total => 100,
+                                           :format => '%t: |%B| %p%% [%E ]'
+        end
         read += bytes
         percentage = (read*100/total)
         if read >= total 
