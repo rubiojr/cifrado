@@ -88,7 +88,8 @@ module Cifrado
           storage_url + Fog::OpenStack.escape(path),
           :headers => headers, 
           :file => File.open(object),
-          :ssl_verify_peer => @connection_options[:ssl_verify_peer]
+          :ssl_verify_peer => @connection_options[:ssl_verify_peer],
+          :bwlimit => options[:bwlimit]
       ) { |bytes| nchunk += 1; pcallback.call(object_size, bytes, nchunk) if pcallback }
 
       Log.debug "Upload response #{res.class}"

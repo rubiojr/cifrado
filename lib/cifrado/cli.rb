@@ -264,6 +264,7 @@ module Cifrado
     option :segments, :type => :numeric, :desc => "Split the data in segments"
     option :strip_path, :type => :boolean
     option :progressbar, :default => :fancy
+    option :bwlimit, :type => :numeric
     def upload(container, file)
       unless file and File.exist?(file)
         Log.error "File '#{file}' does not exist"
@@ -301,6 +302,11 @@ module Cifrado
     end
 
     private
+
+    def bwlimit
+      (options[:bwlimit] * 1024 * 1024)/8
+    end
+
     def client_instance
 
       if options[:quiet] and Log.level < Logger::WARN
@@ -397,14 +403,16 @@ module Cifrado
                         'X-Object-Meta-Encrypted-Name' => encrypted_name
                       },
                       :object_path => File.basename(encrypted_output),
-                      :progress_callback => pb.block
+                      :progress_callback => pb.block,
+                      :bwlimit => bwlimit
         object_path = File.basename(encrypted_output)
         File.delete encrypted_output 
       else
         client.upload container, 
                       object,
                       :object_path => object_path,
-                      :progress_callback => pb.block
+                      :progress_callback => pb.block,
+                      :bwlimit => bwlimit
       end
       object_path
     end
@@ -510,7 +518,8 @@ module Cifrado
                       segment,
                       :headers => headers,
                       :object_path => obj_path,
-                      :progress_callback => pb.block
+                      :progress_callback => pb.block,
+                      :bwlimit => bwlimit
 
         File.delete segment
         segments_uploaded << obj_path

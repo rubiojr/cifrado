@@ -42,7 +42,7 @@ module Cifrado
         end
 
         if RUBY_VERSION =~ /^1\./
-          body_stream = MultipartStream.new(parts, block)
+          body_stream = MultipartStream.new(parts, block, params[:bwlimit])
         else # Assumed >= 2.0
           body_stream = MultipartStreamV2.new(parts, block)
         end
@@ -106,7 +106,7 @@ module Cifrado
     end
 
     class MultipartStream
-      def initialize(parts, blk = nil)
+      def initialize(parts, blk = nil, bwlimit = 0)
         @callback = nil
         if blk
           @callback = blk
@@ -114,6 +114,9 @@ module Cifrado
         @parts = parts
         @part_no = 0
         @part_offset = 0
+        @bwlimit = bwlimit || 0
+        @sleep_counter = 0.01
+        @read = 0
       end
       
       def size
@@ -123,6 +126,19 @@ module Cifrado
       # breaks in ruby 2.0
       # Use MultipartStreamV2
       def read(how_much)
+        if @bwlimit > 0
+          @time = Time.now.to_f unless @time
+          bps = @read/(Time.now.to_f - @time)
+          if bps > @bwlimit
+            sleep @sleep_counter
+            @sleep_counter += 0.01
+          elsif bps < @bwlimit and @sleep_counter >= 0.02
+            @sleep_counter -= 0.01
+          else
+          end
+          @read += how_much
+        end
+
         @callback.call(how_much) if @callback
         return nil if @part_no >= @parts.size
 
