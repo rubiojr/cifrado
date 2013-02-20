@@ -63,6 +63,7 @@ module Cifrado
     option :decrypt, :type => :boolean
     option :passphrase, :type => :string, :desc => "Passphrase used to decrypt the file"
     option :output
+    option :progressbar, :default => :fancy
     def download(container, object = nil)
       client = client_instance
       if object
@@ -70,10 +71,12 @@ module Cifrado
       else
         Log.info "Downloading container files from #{container}"
       end
+      pb = Progressbar.new 1, 1, :style => options[:progressbar]
       r = client.download container, object, 
                           :decrypt => options[:decrypt],
                           :passphrase => options[:passphrase],
-                          :output => options[:output]
+                          :output => options[:output],
+                          :progress_callback => pb.block
       found = (r.status != 404)
       if !found and object
         Log.debug 'Trying to find hashed object name'
@@ -81,7 +84,8 @@ module Cifrado
         r = client.download container, file_hash,
                             :decrypt => options[:decrypt],
                             :passphrase => options[:passphrase],
-                            :output => options[:output]
+                            :output => options[:output],
+                            :progress_callback => pb.block
         found = true if r.status == 200
       end
       unless found

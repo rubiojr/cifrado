@@ -24,10 +24,11 @@ module Cifrado
       Log.debug "Downloading file to #{output}"
 
       http.request(request) do |response|
+        clength = response['Content-Length'].to_i
         File.open(output, "wb") do |file|
           response.read_body do |segment|
             if options[:progress_callback]
-              options[:progress_callback].call segment.length
+              options[:progress_callback].call clength, segment.length, 0
             end
             file.write(segment)
           end
