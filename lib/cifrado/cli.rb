@@ -304,7 +304,7 @@ module Cifrado
     private
 
     def bwlimit
-      (options[:bwlimit] * 1024 * 1024)/8
+      (options[:bwlimit] * 1024 * 1024)/8 if options[:bwlimit]
     end
 
     def client_instance
