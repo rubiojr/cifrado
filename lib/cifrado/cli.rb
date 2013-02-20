@@ -119,7 +119,7 @@ module Cifrado
     #
     desc "list [CONTAINER]", "List containers and objects"
     option :list_segments, :type => :boolean
-    option :fast, :type => :boolean
+    option :decrypt_filenames, :type => :boolean
     option :display_hash, :type => :boolean
     def list(container = nil)
       client = client_instance
@@ -129,7 +129,7 @@ module Cifrado
           Log.info "Listing objects in '#{container}'"
           files = dir.files
           files.each do |f|
-            if options[:fast]
+            unless options[:decrypt_filenames]
               puts f.key
               next
             end
@@ -186,7 +186,7 @@ module Cifrado
             Log.error "File #{object} not found"
           end
         else
-          Log.info "Deleting container #{container}..."
+          Log.info "Deleting container '#{container}'..."
           dir = client.service.directories.get(container)
           if dir
             dir.files.each do |f|
