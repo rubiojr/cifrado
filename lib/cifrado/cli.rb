@@ -245,7 +245,7 @@ module Cifrado
     option :strip_path, :type => :boolean
     option :progressbar, :default => :fancy
     def upload(container, file)
-      unless File.exist?(file)
+      unless file and File.exist?(file)
         Log.error "File '#{file}' does not exist"
         exit 1
       end
@@ -254,15 +254,25 @@ module Cifrado
 
       tstart = Time.now
       uploaded = nil
+      files = []
+      if File.directory?(file)
+        files = Dir["#{file}/**/*"].reject { |f| File.directory?(f) }
+      else
+        files << file
+      end
+
       begin
-        if options[:segments]
-          uploaded = split_and_upload client, container, file
-        else
-          uploaded = upload_single client, container, file
+        uploaded = []
+        files.each do |f|
+          if options[:segments]
+            uploaded << split_and_upload(client, container, f)
+          else
+            uploaded << upload_single(client, container, f)
+          end
+          tend = Time.now
+          Log.info "Time taken #{(tend - tstart).round} s."
         end
-        tend = Time.now
-        Log.info "Time taken #{(tend - tstart).round} s."
-        uploaded
+        uploaded.flatten
       rescue Exception => e
         Log.error e.message
         Log.debug e.backtrace.inspect
