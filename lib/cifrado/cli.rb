@@ -18,45 +18,45 @@ module Cifrado
     def stat(container = nil, object = nil)
       client = client_instance
       creds = client.service.credentials
+      mgmt_url = creds[:server_management_url]
 
-      uri = URI.parse creds[:server_management_url]
-      url = "#{uri.to_s}/#{[container, object].compact.join("/")}"
-      Log.debug "HEAD #{url}"
-
-      r = client.head url
-      path = ''
-      path << container if container
-      path = File.join(container, object) if object
-      
-      # Look for the hashed object in case it was encrypted
-      if r.status == 404 and object
-        file_hash = Digest::SHA2.new << object
-        url = "#{uri.to_s}/#{path}"
-        Log.debug "HEAD #{url}"
-        r = client.head "#{url}"
-      end
-
-      if r.status == 404
-        if object
-          Log.error 'Object not found'
-        else
+      r = nil
+      object = object.gsub(/^\//, '') if object.start_with?('/')
+      if object
+        begin
+          r = client.service.head_object container, object
+        rescue Fog::Storage::OpenStack::NotFound
+          file_hash = Digest::SHA2.new << object
+          begin
+            r = client.service.head_object(container, file_hash.to_s)
+          rescue Fog::Storage::OpenStack::NotFound
+            Log.error 'Object not found'
+          end
+        end
+      elsif container
+        begin
+          r = client.service.head_container container
+        rescue Fog::Storage::OpenStack::NotFound
           Log.error 'Container not found'
         end
       else
-        puts "Account:".ljust(30) + File.basename(uri.path)
-        r.headers.sort.each do |k, v| 
-          if k == 'X-Timestamp'
-            puts "#{(k + ":").ljust(30)}#{v} (#{unix_time(v)})" 
-          elsif k == 'X-Account-Bytes-Used' or k == 'Content-Length'
-            puts "#{(k + ":").ljust(30)}#{v} (#{humanize_bytes(v)})" 
-          elsif k == 'X-Object-Meta-Encrypted-Name'
-            puts "#{(k + ":").ljust(30)}#{v}"
-          else
-            puts "#{(k + ":").ljust(30)}#{v}" 
-          end
-        end
-        r.headers
+        r = client.head mgmt_url
       end
+
+      return unless r
+      puts "Account:".ljust(30) + File.basename(URI.parse(mgmt_url).path)
+      r.headers.sort.each do |k, v| 
+        if k == 'X-Timestamp'
+          puts "#{(k + ":").ljust(30)}#{v} (#{unix_time(v)})" 
+        elsif k == 'X-Account-Bytes-Used' or k == 'Content-Length'
+          puts "#{(k + ":").ljust(30)}#{v} (#{humanize_bytes(v)})" 
+        elsif k == 'X-Object-Meta-Encrypted-Name'
+          puts "#{(k + ":").ljust(30)}#{v}"
+        else
+          puts "#{(k + ":").ljust(30)}#{v}" 
+        end
+      end
+      r.headers
     end
 
     desc "download [CONTAINER] [OBJECT]", "Download container, objects"

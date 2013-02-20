@@ -24,7 +24,6 @@ Shindo.tests('Cifrado | CLI#upload') do
         segments.size == 4 
       end
       test "segment matches /segments/..." do
-        puts segments.last
         !segments.last.match(/segments\/\d+.\d{2}\/\d+\/00000003$/).nil?
       end
     end
@@ -36,6 +35,7 @@ Shindo.tests('Cifrado | CLI#upload') do
         :no_progressbar => true
       }
       cli.upload 'cifrado-tests', obj
+      #Digest::MD5.file(obj) == cli.stat('cifrado-tests', obj)['ETag']
       cli.stat('cifrado-tests', obj).is_a?(Hash)
     end
 
@@ -47,7 +47,7 @@ Shindo.tests('Cifrado | CLI#upload') do
         :encrypt  => 'a:rubiojr',
         :no_progressbar => true
       }
-      obj_path = cli.upload 'cifrado-tests', obj
+      obj_path = (cli.upload 'cifrado-tests', obj).first
       test 'stat' do 
         cli.stat('cifrado-tests', obj_path).is_a?(Hash)
       end
@@ -58,6 +58,16 @@ Shindo.tests('Cifrado | CLI#upload') do
         header = cli.stat('cifrado-tests', obj_path)['X-Object-Meta-Encrypted-Name']
         decrypted_name = decrypt_filename header, cli.config[:password]
         decrypted_name == obj 
+      end
+
+      clean_test_container
+      obj1 = create_bin_payload 1, "/tmp/cifrado-upload-dir/foo"
+      obj2 = create_bin_payload 1, "/tmp/cifrado-upload-dir/bar/foo"
+      obj3 = create_bin_payload 1, "/tmp/cifrado-upload-dir/stuff/bar/foo"
+      cli.upload test_container.key, "/tmp/cifrado-upload-dir/"
+      sleep 2
+      test 'directory upload' do
+        test_container.files.size == 3
       end
     end
     
@@ -129,8 +139,8 @@ Shindo.tests('Cifrado | CLI#upload') do
         :encrypt  => 's:foobar',
         :no_progressbar => true
       }
-      obj_path = cli.upload 'cifrado-tests', obj
-      cli.stat('cifrado-tests', obj_path).is_a?(Hash)
+      obj_path = (cli.upload 'cifrado-tests', obj).first
+      !cli.stat('cifrado-tests', obj_path)['X-Object-Meta-Encrypted-Name'].nil?
     end
   end
   
