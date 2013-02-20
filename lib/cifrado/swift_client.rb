@@ -158,7 +158,7 @@ module Cifrado
         "User-Agent" => "#{user_agent}",
         "X-Auth-Token" => auth_token
       }
-      res = StreamingDownloader.get storage_url + path,
+      res = StreamingDownloader.get storage_url + Fog::OpenStack.escape(path),
                                     tmp_file,
                                     :progress_callback => options[:progress_callback],
                                     :connection_options => @connection_options,
