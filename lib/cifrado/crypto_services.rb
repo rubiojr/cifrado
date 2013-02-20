@@ -26,7 +26,8 @@ module Cifrado
       # so we can use --use-embedded-filename to recover the original
       # filename
       Log.debug "Setting GPG filename #{file} (Base64 URL encoded)"
-      @gpg_extra_args << "--set-filename '#{Base64.urlsafe_encode64(file)}'"
+      clean_path = Pathname.new(file).cleanpath.to_s
+      @gpg_extra_args << "--set-filename '#{Base64.urlsafe_encode64(clean_path)}'"
 
       check_args
       raise ArgumentError.new("#{@gpg_binary} not found") unless File.exist?(@gpg_binary)
