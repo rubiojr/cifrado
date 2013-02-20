@@ -99,7 +99,8 @@ Shindo.tests('Cifrado | SwiftClient#download') do
           client.download container.key, 
                           nil, 
                           :output => output,
-                          :decrypt => true
+                          :decrypt => true,
+                          :passphrase => passphrase
         end
 
         tests "contents in #{output}" do
@@ -107,7 +108,8 @@ Shindo.tests('Cifrado | SwiftClient#download') do
           client.download container.key, 
                           nil, 
                           :output => output,
-                          :decrypt => true
+                          :decrypt => true,
+                          :passphrase => passphrase
           [obj, obj2, obj3].each do |o|
             test "includes #{o}" do
               Dir["#{output}/**/*"].include?(File.join(output, obj))

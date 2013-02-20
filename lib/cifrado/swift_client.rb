@@ -180,7 +180,7 @@ module Cifrado
           else
           end
           Log.debug "Decrypted file output: #{dest_file}"
-          cs = CryptoServices.new
+          cs = CryptoServices.new :passphrase => options[:passphrase] 
           tmp_file = cs.decrypt tmp_file, tmp_file + '.decrypted' 
         else
           Log.warn 'X-Object-Meta-Encrypted-Name header not found in object'

@@ -61,6 +61,7 @@ module Cifrado
 
     desc "download [CONTAINER] [OBJECT]", "Download container, objects"
     option :decrypt, :type => :boolean
+    option :passphrase, :type => :string, :desc => "Passphrase used to decrypt the file"
     option :output
     def download(container, object = nil)
       client = client_instance
@@ -71,6 +72,7 @@ module Cifrado
       end
       r = client.download container, object, 
                           :decrypt => options[:decrypt],
+                          :passphrase => options[:passphrase],
                           :output => options[:output]
       found = (r.status != 404)
       if !found and object
@@ -78,6 +80,7 @@ module Cifrado
         file_hash = (Digest::SHA2.new << object).to_s
         r = client.download container, file_hash,
                             :decrypt => options[:decrypt],
+                            :passphrase => options[:passphrase],
                             :output => options[:output]
         found = true if r.status == 200
       end

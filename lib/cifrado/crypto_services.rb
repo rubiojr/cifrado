@@ -73,7 +73,11 @@ module Cifrado
       Log.debug "Decrypting file #{file}..."
       
       if output != '-'
-        @gpg_extra_args << ["--output #{Shellwords.escape(output)}"]
+        @gpg_extra_args << "--output #{Shellwords.escape(output)}"
+      end
+
+      if @options[:passphrase]
+        @gpg_extra_args << "--no-use-agent --passphrase #{@options[:passphrase]}"
       end
       
       cmd = "#{@gpg_binary} #{@gpg_extra_args.join(' ')} --decrypt #{Shellwords.escape(file)}"
