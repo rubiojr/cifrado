@@ -43,7 +43,7 @@ module Cifrado
               read += segment.length
             end
             if options[:progress_callback]
-              options[:progress_callback].call clength, segment.length
+              options[:progress_callback].call clength, segment.length, segment
             end
             file.write(segment)
           end
