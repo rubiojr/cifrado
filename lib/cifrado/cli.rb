@@ -21,8 +21,8 @@ module Cifrado
       mgmt_url = creds[:server_management_url]
 
       r = nil
-      object = object.gsub(/^\//, '') if object.start_with?('/')
       if object
+        object = object.gsub(/^\//, '') if object.start_with?('/')
         begin
           r = client.service.head_object container, object
         rescue Fog::Storage::OpenStack::NotFound
