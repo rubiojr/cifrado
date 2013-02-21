@@ -1,6 +1,7 @@
 require 'cifrado/version'
 require 'cifrado/core_ext/ruby18_base64'
 require 'logger'
+require 'shellwords'
 require 'uri'
 require 'thor'
 require 'fileutils'
