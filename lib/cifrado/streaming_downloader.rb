@@ -25,7 +25,7 @@ module Cifrado
       
       bwlimit = options[:bwlimit] || 0
       sleep_counter = 0.01
-      @read = 0
+      read = 0
       time = Time.now.to_f 
 
       http.request(request) do |response|
@@ -33,14 +33,14 @@ module Cifrado
         File.open(output, "wb") do |file|
           response.read_body do |segment|
             if bwlimit > 0
-              bps = @read/(Time.now.to_f - time)
+              bps = read/(Time.now.to_f - time)
               if (bps > bwlimit) 
                 sleep sleep_counter
                 sleep_counter += 0.01
               else
                 sleep_counter -= 0.01 if sleep_counter >= 0.02
               end
-              @read += segment.length
+              read += segment.length
             end
             if options[:progress_callback]
               options[:progress_callback].call clength, segment.length

@@ -132,9 +132,8 @@ module Cifrado
           if bps > @bwlimit
             sleep @sleep_counter
             @sleep_counter += 0.01
-          elsif bps < @bwlimit and @sleep_counter >= 0.02
-            @sleep_counter -= 0.01
           else
+            @sleep_counter -= 0.01 if @sleep_counter >= 0.02
           end
           @read += how_much
         end
