@@ -64,6 +64,7 @@ module Cifrado
     option :passphrase, :type => :string, :desc => "Passphrase used to decrypt the file"
     option :output
     option :progressbar, :default => :fancy
+    option :bwlimit, :type => :numeric
     def download(container, object = nil)
       client = client_instance
       files = []
@@ -90,7 +91,8 @@ module Cifrado
                               :decrypt => options[:decrypt],
                               :passphrase => options[:passphrase],
                               :output => options[:output],
-                              :progress_callback => pb.block 
+                              :progress_callback => pb.block,
+                              :bwlimit => bwlimit
           found = (r.status != 404)
           if !found and object
             Log.debug 'Trying to find hashed object name'
@@ -99,7 +101,8 @@ module Cifrado
                                 :decrypt => options[:decrypt],
                                 :passphrase => options[:passphrase],
                                 :output => options[:output],
-                                :progress_callback => pb.block 
+                                :progress_callback => pb.block,
+                                :bwlimit => bwlimit
             found = true if r.status == 200
           end
         end

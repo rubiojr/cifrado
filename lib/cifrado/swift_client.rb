@@ -173,7 +173,8 @@ module Cifrado
                                     tmp_file,
                                     :progress_callback => options[:progress_callback],
                                     :connection_options => @connection_options,
-                                    :headers => headers
+                                    :headers => headers,
+                                    :bwlimit => options[:bwlimit]
 
       #
       # Try to decrypt the file if it was encrypted
