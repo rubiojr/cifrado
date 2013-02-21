@@ -39,7 +39,7 @@ module Cifrado
           percentage = (read*100/total)
           kbs = "%0.2f" % (read*8/((Time.now.to_f - time)*1024*1024))
           progressbar.title = " [#{kbs} Mb/s] #{title}"
-          progressbar.progress = percentage 
+          progressbar.progress = percentage unless percentage > 100
         end
         progressbar.finish if (progressbar.progress < 100) and \
           read >= total
