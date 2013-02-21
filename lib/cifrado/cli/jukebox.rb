@@ -40,11 +40,11 @@ module Cifrado
       Log.info set_color("Ctrl-C twice", :bold)+ "  -> quit"
       Log.info
       songs.shuffle.each do |song|
-        pipe = IO.popen("mplayer -cache 256 - > /dev/null 2>&1", "w")
         if options[:match] and song.key !~ /#{options[:match]}/i
           next
         end
         begin
+          pipe = IO.popen("mplayer -cache 256 - > /dev/null 2>&1", "w")
           unless (song.content_type =~ /audio|ogg|mp3/) or \
                   song.key =~ /(mp3|wav|ogg)$/
             next

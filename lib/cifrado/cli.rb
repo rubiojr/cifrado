@@ -415,7 +415,7 @@ module Cifrado
     def upload_single(client, container, object)
       fsize = File.size(object)
       fbasename = File.basename(object)
-      Log.info "Uploading #{fbasename} (#{humanize_bytes(fsize)})"
+      Log.info "Uploading #{object} (#{humanize_bytes(fsize)})"
 
       pb = Progressbar.new 1, 1, :style => options[:progressbar]
 
