@@ -80,14 +80,14 @@ module Cifrado
         pb = Progressbar.new 1, 1, :style => options[:progressbar]
         found = nil
         files.each do |f|
+          obj = f.is_a?(String) ? f : f.key
           if !f.is_a?(String) and f.metadata[:encrypted_name]
             fname = decrypt_filename f.metadata[:encrypted_name], @config[:password]
             Log.info "Downloading file #{fname}"
-            f = f.key
           else
-            Log.info "Downloading file #{f}"
+            Log.info "Downloading file #{obj}"
           end
-          r = client.download container, f,
+          r = client.download container, obj,
                               :decrypt => options[:decrypt],
                               :passphrase => options[:passphrase],
                               :output => options[:output],
@@ -96,7 +96,7 @@ module Cifrado
           found = (r.status != 404)
           if !found and object
             Log.debug 'Trying to find hashed object name'
-            file_hash = (Digest::SHA2.new << f).to_s
+            file_hash = (Digest::SHA2.new << obj).to_s
             r = client.download container, file_hash,
                                 :decrypt => options[:decrypt],
                                 :passphrase => options[:passphrase],
@@ -193,7 +193,7 @@ module Cifrado
           dir = client.service.directories.get(container)
           if dir
             dir.files.each do |f|
-              Log.debug "Deleting file #{f.key}..."
+              Log.info "Deleting file #{f.key}..."
               f.destroy
             end
             dir.destroy
@@ -202,7 +202,7 @@ module Cifrado
         end
       rescue => e
         Log.error e.message
-        Log.debug e.backtrace
+        Log.debug e.backtrace.inspect
       end
     end
 
@@ -268,6 +268,7 @@ module Cifrado
     option :strip_path, :type => :boolean
     option :progressbar, :default => :fancy
     option :bwlimit, :type => :numeric
+    option :force, :type => :boolean
     def upload(container, file)
       unless file and File.exist?(file)
         Log.error "File '#{file}' does not exist"
@@ -291,10 +292,36 @@ module Cifrado
           if options[:segments]
             uploaded << split_and_upload(client, container, f)
           else
-            uploaded << upload_single(client, container, f)
+            begin
+              res = client.service.head_object(
+                      container, 
+                      clean_object_name(f)
+              )
+              if res.headers['Etag'] == Digest::MD5.file(f).to_s
+                if options[:force]
+                  Log.warn "File #{f} already uploaded and MD5 matches."
+                  Log.warn "Since --force was used, uploading it again."
+                  uploaded << upload_single(client, container, f)
+                else
+                  Log.warn "File #{f} already uploaded and MD5 matches, skipping."
+                end
+              else
+                Log.warn "File #{f} already uploaded, but it has changed."
+                if options[:force]
+                  Log.warn "Overwriting it as requested (--force)."
+                  uploaded << upload_single(client, container, f)
+                else
+                  Log.warn "Since --force was not used, skipping it."
+                end
+              end
+            rescue Fog::Storage::OpenStack::NotFound
+              uploaded << upload_single(client, container, f)
+            end
           end
-          tend = Time.now
-          Log.info "Time taken #{(tend - tstart).round} s."
+          if uploaded.size > 0
+            tend = Time.now
+            Log.info "Time taken #{(tend - tstart).round} s."
+          end
         end
         uploaded.flatten
       rescue Exception => e
@@ -367,6 +394,7 @@ module Cifrado
         rescue => e
           Cifrado::Log.error "Error loading config file"
           Cifrado::Log.error e.message
+          Cifrado::Log.error e.backtrace.inspect
         end
       end
 
@@ -550,3 +578,4 @@ module Cifrado
 
   end
 end
+require 'cifrado/cli/jukebox'
