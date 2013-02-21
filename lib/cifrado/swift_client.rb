@@ -84,13 +84,23 @@ module Cifrado
       if options[:headers]
         headers = headers.merge options[:headers] 
       end
-      res = Cifrado::StreamingUploader.put(
-          storage_url + Fog::OpenStack.escape(path),
-          :headers => headers, 
-          :file => File.open(object),
-          :ssl_verify_peer => @connection_options[:ssl_verify_peer],
-          :bwlimit => options[:bwlimit]
-      ) { |bytes| nchunk += 1; pcallback.call(object_size, bytes, nchunk) if pcallback }
+      if pcallback
+        res = Cifrado::StreamingUploader.put(
+            storage_url + Fog::OpenStack.escape(path),
+            :headers => headers, 
+            :file => File.open(object),
+            :ssl_verify_peer => @connection_options[:ssl_verify_peer],
+            :bwlimit => options[:bwlimit]
+        ) { |bytes| pcallback.call(object_size, bytes) }
+      else
+        res = Cifrado::StreamingUploader.put(
+            storage_url + Fog::OpenStack.escape(path),
+            :headers => headers, 
+            :file => File.open(object),
+            :ssl_verify_peer => @connection_options[:ssl_verify_peer],
+            :bwlimit => options[:bwlimit]
+        ) 
+      end
 
       Log.debug "Upload response #{res.class}"
       # Wrap Net::HTTPResponse in a Excon::Response Object

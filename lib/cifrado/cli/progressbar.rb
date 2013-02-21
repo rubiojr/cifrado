@@ -25,25 +25,27 @@ module Cifrado
       require 'ruby-progressbar'
       title = (@segments == 1 ? \
                'Progress' : "Segment [#{@current_segment}/#{@segments}]")
-      progressbar = nil
+      progressbar = ProgressBar.create :title => title, :total => 100,
+                                       :format => '%t: |%B| %p%% [%E ]'
       read = 0
       percentage = 0
       time = Time.now.to_f
-      Proc.new do |total, bytes, nchunk| 
-        unless progressbar
-          progressbar = ProgressBar.create :title => title, :total => 100,
-                                           :format => '%t: |%B| %p%% [%E ]'
-        end
+      last_time = Time.now.to_f
+      Proc.new do |total, bytes| 
         read += bytes
-        percentage = (read*100/total)
-        if read >= total 
-          if progressbar.progress < 100
-            progressbar.finish
+        newt = Time.now.to_f 
+        if newt - last_time > 1
+          last_time = newt
+          percentage = (read*100/total)
+          if read >= total 
+            if progressbar.progress < 100
+              progressbar.finish
+            end
+          else
+            kbs = "%0.2f" % (read*8/((Time.now.to_f - time)*1024*1024))
+            progressbar.title = " [#{kbs} Mb/s] #{title}"
+            progressbar.progress = percentage 
           end
-        else
-          kbs = "%0.2f" % (read*8/((Time.now.to_f - time)*1024*1024))
-          progressbar.title = " [#{kbs} Mb/s] #{title}"
-          progressbar.progress = percentage 
         end
       end
     end
@@ -51,7 +53,7 @@ module Cifrado
     def infinite
       read = 0
       time = Time.now.to_f
-      Proc.new do |tbytes, bytes, nchunk| 
+      Proc.new do |tbytes, bytes| 
         read += bytes
         kbs = "%0.2f" % (read*8/((Time.now.to_f - time)*1024*1024))
         print "Progress (unknown total size): #{humanize_bytes(read).ljust(10)} read (#{kbs} Mb/s)".ljust(60)
@@ -60,15 +62,13 @@ module Cifrado
     end
 
     def fast
-      if @segments != 1
-        title = " [#{@current_segment}/#{@segments}]"
-      else
-        title = " "
-      end
+      title = (@segments == 1) ? ' ' : \
+              " [#{@current_segment}/#{@segments}]"
+
       read = 0
       progressbar_finished = false
       time = Time.now.to_f
-      Proc.new do |tbytes, bytes, nchunk| 
+      Proc.new do |tbytes, bytes| 
         read += bytes
         percentage = ((read*100.0/tbytes))
         kbs = "%0.2f" % (read*8/((Time.now.to_f - time)*1024*1024))
