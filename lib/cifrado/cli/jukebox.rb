@@ -55,7 +55,6 @@ module Cifrado
                               song.key, 
                               :output => tmpout,
                               :progress_callback => cb
-          pipe.close
           File.delete tmpout
         rescue Interrupt => e
           if Time.now.to_f - last_exit < 1
@@ -68,6 +67,9 @@ module Cifrado
         rescue => e
           Log.error "Error streaming song #{song.key}"
           raise e
+        ensure
+          Log.debug "Closing pipe for #{song.key}"
+          pipe.close
         end
       end
     rescue SystemExit
