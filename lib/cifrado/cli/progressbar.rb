@@ -37,16 +37,12 @@ module Cifrado
         if newt - last_time > 1
           last_time = newt
           percentage = (read*100/total)
-          if read >= total 
-            if progressbar.progress < 100
-              progressbar.finish
-            end
-          else
-            kbs = "%0.2f" % (read*8/((Time.now.to_f - time)*1024*1024))
-            progressbar.title = " [#{kbs} Mb/s] #{title}"
-            progressbar.progress = percentage 
-          end
+          kbs = "%0.2f" % (read*8/((Time.now.to_f - time)*1024*1024))
+          progressbar.title = " [#{kbs} Mb/s] #{title}"
+          progressbar.progress = percentage 
         end
+        progressbar.finish if (progressbar.progress < 100) and \
+          read >= total
       end
     end
 
