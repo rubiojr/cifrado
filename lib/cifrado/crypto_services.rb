@@ -5,8 +5,6 @@ module Cifrado
   class CryptoServices
 
     def initialize(options = {})
-      require 'shellwords'
-      require 'securerandom'
       @options = options
       @gpg_binary = @options[:gpg_binary] || '/usr/bin/gpg'
       @gpg_extra_args = @options[:gpg_extra_args] || []
