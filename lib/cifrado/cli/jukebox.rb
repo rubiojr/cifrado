@@ -15,7 +15,7 @@ module Cifrado
       mpbin = File.exist?(mpbin) ? \
         mpbin : `which /usr/bin/mplayer`.strip.chomp
       unless File.exist?(mpbin)
-        Log.error "MPlayer binary not found. Install it first"
+        Log.error "MPlayer binary not found. Install it first."
         exit 1
       end
 
