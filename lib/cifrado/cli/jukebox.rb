@@ -39,8 +39,8 @@ module Cifrado
       Log.info set_color("Ctrl-C once", :bold)+ "   -> next song"
       Log.info set_color("Ctrl-C twice", :bold)+ "  -> quit"
       Log.info
-      pipe = IO.popen("mplayer -cache 256 - > /dev/null 2>&1", "w")
       songs.shuffle.each do |song|
+        pipe = IO.popen("mplayer -cache 256 - > /dev/null 2>&1", "w")
         if options[:match] and song.key !~ /#{options[:match]}/i
           next
         end
@@ -56,6 +56,7 @@ module Cifrado
                               :output => tmpout,
                               :progress_callback => cb
           puts 'end'
+          pipe.close
         rescue Interrupt => e
           if Time.now.to_f - last_exit < 1
             Log.info
