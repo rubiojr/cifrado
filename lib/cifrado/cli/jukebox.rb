@@ -55,12 +55,11 @@ module Cifrado
                               song.key, 
                               :output => tmpout,
                               :progress_callback => cb
-          puts 'end'
           pipe.close
+          File.delete tmpout
         rescue Interrupt => e
           if Time.now.to_f - last_exit < 1
-            Log.info
-            Log.info set_color "Adios!", :bold
+            Log.info set_color "\nAdios!", :bold
             exit 0
           else
             last_exit = Time.now.to_f
