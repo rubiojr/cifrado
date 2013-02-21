@@ -3,6 +3,15 @@ require 'digest/sha1'
 module Cifrado
   module Utils
 
+    def mime_type(file)
+      mime = `/usr/bin/file -b --mime-type #{Shellwords.escape(file)} 2>/dev/null`.strip.chomp
+      mime.empty? ? nil : mime
+    end
+
+    def clean_object_name(obj)
+      Pathname.new(obj.gsub(/^(\/+|.\/)/,'')).cleanpath.to_s
+    end
+
     def unix_time(secs)
       (Time.at secs.to_i).to_s
     end
