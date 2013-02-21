@@ -37,7 +37,7 @@ module Cifrado
       Log.info "---------------"
       Log.info
       Log.info set_color("Ctrl-C once", :bold)+ "   -> next song"
-      Log.info set_color("Ctrl-C twice", :bold)+ "  -> next song"
+      Log.info set_color("Ctrl-C twice", :bold)+ "  -> quit"
       Log.info
       pipe = IO.popen("mplayer -cache 256 - > /dev/null 2>&1", "w")
       songs.shuffle.each do |song|
