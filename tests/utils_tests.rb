@@ -1,4 +1,22 @@
+include Cifrado::Utils
+
 Shindo.tests('Cifrado | Utils') do
+
+  tests 'clean_object_name' do
+    test './foo/bar/stuff' do
+      clean_object_name('./foo/bar/stuff') == 'foo/bar/stuff'
+    end
+    test '//foo/bar/stuff' do
+      puts clean_object_name('//foo/bar/stuff')
+      clean_object_name('//foo/bar/stuff') == 'foo/bar/stuff'
+    end
+    test '/foo/bar/stuff' do
+      clean_object_name('/foo/bar/stuff') == 'foo/bar/stuff'
+    end
+    test 'foo/bar/stuff' do
+      clean_object_name('foo/bar/stuff') == 'foo/bar/stuff'
+    end
+  end
 
   test 'encrypt_filename' do
     cs = CryptoEngineAES.new passphrase
