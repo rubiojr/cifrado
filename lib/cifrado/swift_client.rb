@@ -62,7 +62,7 @@ module Cifrado
       # if :source_file present, object may be the destination
       # path of the object and may not be the path to the
       # real file
-      object_path = options[:object_path] || object
+      object_path = clean_object_name(options[:object_path] || object)
       object_size = File.size(object)
 
       Log.debug "Object size: #{humanize_bytes(object_size)}"
@@ -80,7 +80,10 @@ module Cifrado
 
       pcallback = options[:progress_callback]
       nchunk = 0
-      headers = headers = { 'X-Auth-Token' => auth_token }
+      headers = { 'X-Auth-Token' => auth_token }
+      if mime = mime_type(object)
+        headers['Content-Type'] = mime
+      end
       if options[:headers]
         headers = headers.merge options[:headers] 
       end
