@@ -1,3 +1,5 @@
+require 'open3'
+
 module Cifrado
   class CLI
 
@@ -19,11 +21,6 @@ module Cifrado
         exit 1
       end
 
-      pipe = nil
-      cb = Proc.new do |total, bytes, segment|
-        pipe.write segment if bytes > 0
-      end
-
       dir = client.service.directories.get container
       unless dir
         Log.error "Container #{container} not found."
@@ -39,13 +36,20 @@ module Cifrado
       Log.info set_color("Ctrl-C once", :bold)+ "   -> next song"
       Log.info set_color("Ctrl-C twice", :bold)+ "  -> quit"
       Log.info
+      $stderr.reopen('/dev/null', 'w')
+      cmd = %w{mplayer -really-quiet -msglevel all=-1 -cache 256 -}
+      pipe = IO.popen(cmd, 'w')
       songs.shuffle.each do |song|
         if options[:match] and song.key !~ /#{options[:match]}/i
           next
         end
         begin
-          pipe = IO.popen("mplayer -cache 256 - > /dev/null 2>&1", "w")
-          unless (song.content_type =~ /audio|ogg|mp3/) or \
+
+          cb = Proc.new do |total, bytes, segment|
+            pipe.write segment if bytes > 0 
+          end
+
+          unless (song.content_type =~ /ogg|mp3/) or \
                   song.key =~ /(mp3|wav|ogg)$/
             next
           end
@@ -55,8 +59,13 @@ module Cifrado
                               song.key, 
                               :output => tmpout,
                               :progress_callback => cb
+          Log.debug "Song finished streaming"
           File.delete tmpout
         rescue Interrupt => e
+          Log.debug "Closing pipe, killing mplayer"
+          pipe.close unless pipe.closed?
+          Log.debug "Opening new pipe"
+          pipe = IO.popen(cmd, 'w')
           if Time.now.to_f - last_exit < 1
             Log.info set_color "\nAdios!", :bold
             exit 0
@@ -64,20 +73,18 @@ module Cifrado
             last_exit = Time.now.to_f
             Log.info 'Next song...'
           end
-        rescue => e
-          Log.error "Error streaming song #{song.key}"
-          raise e
-        ensure
-          Log.debug "Closing pipe for #{song.key}"
-          pipe.close
         end
       end
     rescue SystemExit
-    rescue => e
+    rescue Exception => e
       Log.error e.message
+      Log.debug e.class.to_s
       Log.debug e.backtrace
-    ensure 
-      pipe.close if pipe
+    ensure
+      if pipe and !pipe.closed?
+        Log.debug "Closing pipe for #{song.key}"
+        pipe.close 
+      end
     end
 
   end
