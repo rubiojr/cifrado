@@ -12,6 +12,7 @@ module Cifrado
     class_option :quiet
     class_option :password
     class_option :auth_url
+    class_option :tenant
     class_option :insecure, :type => :boolean, :desc => "Insecure SSL connections"
 
     desc "stat [CONTAINER] [OBJECT]", "Displays information for the account, container, or object."
@@ -239,9 +240,10 @@ module Cifrado
       puts "The settings (password included) are saved unencrypted."
       puts
       config[:username] = ask(set_color('Username:', :bold))
-      system 'stty -echo -icanon'
+      config[:tenant]   = ask(set_color('Tenant:', :bold))
+      system 'stty -echo'
       config[:password] = ask(set_color 'Password:', :bold)
-      system 'stty echo icanon'
+      system 'stty echo'
       puts
       config[:auth_url] = ask(set_color 'Auth URL:', :bold)
 
@@ -358,6 +360,7 @@ module Cifrado
         client = Cifrado::SwiftClient.new :username => config[:username], 
                                           :api_key  => config[:password],
                                           :auth_url => config[:auth_url],
+                                          :tenant   => config[:tenant],
                                           :connection_options => { 
                                             :ssl_verify_peer => !options[:insecure] 
                                           }
@@ -406,9 +409,10 @@ module Cifrado
       end
 
       config[:username] = options[:username] || config[:username]
-      config[:password] = options[:password] ||config[:password]
+      config[:password] = options[:password] || config[:password]
       config[:auth_url] = options[:auth_url] || config[:auth_url] 
-      [:username, :password, :auth_url].each do |opt|
+      config[:tenant]   = options[:tenant]   || config[:tenant] 
+      [:username, :password, :auth_url, :tenant].each do |opt|
         if config[opt].nil?
           Log.error "#{opt.to_s.capitalize} not provided."
           Log.error "Use --#{opt.to_s.gsub('_', '-')} option or run 'cifrado setup' first."

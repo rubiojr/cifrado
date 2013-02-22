@@ -14,6 +14,7 @@ module Cifrado
       @username = auth_data[:username]
       @api_key  = auth_data[:api_key]
       @auth_url = auth_data[:auth_url]
+      @tenant   = auth_data[:tenant]
       @connection_options = auth_data[:connection_options] || {}
       @service_type = auth_data[:service_type] || 'object-store'
       @endpoint_type = auth_data[:endpoint_type] || 'publicURL'
@@ -242,6 +243,7 @@ module Cifrado
                                   :openstack_auth_url => @auth_url,
                                   :openstack_username => @username,
                                   :openstack_api_key  => @api_key,
+                                  :openstack_tenant   => @tenant,
                                   :openstack_service_type  => @service_type,
                                   :openstack_endpoint_type => @endpoint_type 
     end
