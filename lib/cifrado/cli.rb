@@ -19,6 +19,12 @@ module Cifrado
       client = client_instance
       creds = client.service.credentials
       mgmt_url = creds[:server_management_url]
+      
+      reject_headers = ['Accept-Ranges', 'X-Trans-Id']
+      unless container and object
+        reject_headers << 'Content-Length'
+      end
+      reject_headers << 'Content-Type' unless object
 
       r = nil
       if object
@@ -46,6 +52,7 @@ module Cifrado
       return unless r
       puts "Account:".ljust(30) + File.basename(URI.parse(mgmt_url).path)
       r.headers.sort.each do |k, v| 
+        next if reject_headers.include?(k)
         if k == 'X-Timestamp'
           puts "#{(k + ":").ljust(30)}#{v} (#{unix_time(v)})" 
         elsif k == 'X-Account-Bytes-Used' or k == 'Content-Length'
