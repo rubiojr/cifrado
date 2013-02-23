@@ -69,14 +69,9 @@ module Cifrado
           end
         end
       end
-    rescue SystemExit
-    rescue Exception => e
-      Log.error e.message
-      Log.debug e.class.to_s
-      Log.debug e.backtrace
     ensure
       if pipe and !pipe.closed?
-        Log.debug "Closing pipe for #{song.key}"
+        Log.debug "Closing pipe"
         pipe.close 
       end
     end

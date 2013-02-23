@@ -15,319 +15,7 @@ module Cifrado
     class_option :tenant
     class_option :insecure, :type => :boolean, :desc => "Insecure SSL connections"
 
-    desc "stat [CONTAINER] [OBJECT]", "Displays information for the account, container, or object."
-    def stat(container = nil, object = nil)
-      client = client_instance
-      creds = client.service.credentials
-      mgmt_url = creds[:server_management_url]
-      
-      reject_headers = ['Accept-Ranges', 'X-Trans-Id']
-      unless container and object
-        reject_headers << 'Content-Length'
-      end
-      reject_headers << 'Content-Type' unless object
-
-      object = clean_object_name(object) if object
-      headers = client.head(container, object)
-      if headers
-        puts "Account:".ljust(30) + File.basename(URI.parse(mgmt_url).path)
-        headers.sort.each do |k, v| 
-          next if reject_headers.include?(k)
-          if k == 'X-Timestamp'
-            puts "#{(k + ":").ljust(30)}#{v} (#{unix_time(v)})" 
-          elsif k == 'X-Account-Bytes-Used' or k == 'Content-Length'
-            puts "#{(k + ":").ljust(30)}#{v} (#{humanize_bytes(v)})" 
-          elsif k == 'X-Object-Meta-Encrypted-Name'
-            puts "#{(k + ":").ljust(30)}#{v}"
-          else
-            puts "#{(k + ":").ljust(30)}#{v}" 
-          end
-        end
-        headers
-      else
-        if object
-          Log.error "Object not found."
-        else
-          Log.error "Container not found."
-        end
-      end
-    end
-
-    desc "download [CONTAINER] [OBJECT]", "Download container, objects"
-    option :decrypt, :type => :boolean
-    option :passphrase, :type => :string, :desc => "Passphrase used to decrypt the file"
-    option :output
-    option :progressbar, :default => :fancy
-    option :bwlimit, :type => :numeric
-    def download(container, object = nil)
-      client = client_instance
-      files = []
-      begin
-        if object
-          Log.info "Downloading #{object}..."
-          files << object
-        else
-          Log.info "Downloading container files from #{container}"
-          dir = client.service.directories.get(container)
-          files = dir.files if dir
-        end
-        pb = Progressbar.new 1, 1, :style => options[:progressbar]
-        found = nil
-        files.each do |f|
-          obj = f.is_a?(String) ? f : f.key
-          if !f.is_a?(String) and f.metadata[:encrypted_name]
-            fname = decrypt_filename f.metadata[:encrypted_name], @config[:password]
-            Log.info "Downloading file #{fname}"
-          else
-            Log.info "Downloading file #{obj}"
-          end
-          r = client.download container, obj,
-                              :decrypt => options[:decrypt],
-                              :passphrase => options[:passphrase],
-                              :output => options[:output],
-                              :progress_callback => pb.block,
-                              :bwlimit => bwlimit
-          found = (r.status != 404)
-          if !found and object
-            Log.debug 'Trying to find hashed object name'
-            file_hash = (Digest::SHA2.new << obj).to_s
-            r = client.download container, file_hash,
-                                :decrypt => options[:decrypt],
-                                :passphrase => options[:passphrase],
-                                :output => options[:output],
-                                :progress_callback => pb.block,
-                                :bwlimit => bwlimit
-            found = true if r.status == 200
-          end
-        end
-        unless found
-          Log.error "File #{object} not found in #{container}"
-          exit 1
-        end
-      rescue SystemExit
-      rescue => e
-        Log.error e.message
-        Log.debug e.backtrace.inspect
-      end
-    end
-
-    # @returns [Array] a list of Fog::OpenStack::File or
-    # Fog::OpenStack::Directory
-    #
-    desc "list [CONTAINER]", "List containers and objects"
-    option :list_segments, :type => :boolean
-    option :decrypt_filenames, :type => :boolean
-    option :display_hash, :type => :boolean
-    def list(container = nil)
-      client = client_instance
-      if container
-        dir = client.service.directories.get container
-        if dir
-          Log.info "Listing objects in '#{container}'"
-          files = dir.files
-          files.each do |f|
-            unless options[:decrypt_filenames]
-              puts f.key
-              next
-            end
-            # Skip segments
-            next if f.key =~ /\/segments\/\d+\.\d{2}\/\d+\/\d+/ and \
-                    not options[:list_segments]
-
-            metadata = f.metadata
-            if metadata[:encrypted_name] 
-              fname = decrypt_filename metadata[:encrypted_name], @config[:password]
-              puts "#{fname.ljust(55)} #{set_color("[encrypted]",:red, :bold)}"
-              puts "  hash: #{f.key}" if options[:display_hash]
-            else
-              puts f.key.ljust(55)
-            end
-          end 
-          files
-        else
-          Log.error "Container '#{container}' not found"
-        end
-      else
-        Log.info "Listing containers"
-        directories = client.service.directories
-        directories.each { |d| puts d.key }
-        directories
-      end
-    end
-
-    desc "post CONTAINER [DESCRIPTION]", "Create a container"
-    def post(container, description = '')
-      client = client_instance
-      client.service.directories.create :key => container, 
-                                        :description => description
-    end
-
-    desc "delete CONTAINER [OBJECT]", "Delete specific container or object"
-    def delete(container, object = nil)
-      client = client_instance
-      begin
-        if object
-          Log.info "Deleting file #{object}..."
-          deleted = false
-          begin
-            client.service.delete_object container, object
-            deleted = true
-          rescue Fog::Storage::OpenStack::NotFound
-            Log.debug 'Trying to find hashed object name'
-            file_hash = (Digest::SHA2.new << object).to_s
-            deleted = client.service.delete_object(container, file_hash) rescue nil
-          end
-          if deleted
-            Log.info "File #{object} deleted"
-          else
-            Log.error "File #{object} not found"
-          end
-        else
-          Log.info "Deleting container '#{container}'..."
-          dir = client.service.directories.get(container)
-          if dir
-            dir.files.each do |f|
-              Log.info "Deleting file #{f.key}..."
-              f.destroy
-            end
-            dir.destroy
-            Log.info "Container #{container} deleted"
-          end
-        end
-      rescue => e
-        Log.error e.message
-        Log.debug e.backtrace.inspect
-      end
-    end
-
-    desc "cache-clean", "Empty Cifrado's cache directory"
-    def cache_clean
-      Log.info "Cleaning cache dir #{Config.instance.cache_dir}"
-      Dir["#{Config.instance.cache_dir}/*"].each { |f| File.delete f }
-    end
-
-    desc "setup", "Initial Cifrado configuration"
-    def setup
-      config_file = File.join(ENV['HOME'], '.cifradorc')
-      if File.exist?(config_file)
-        Log.warn "Config file #{set_color config_file, :bold} already exist."
-        unless yes? "Continue?"
-          return
-        end
-      end
-
-      config = {}
-
-      puts "Running cifrado setup..."
-      puts "Please provide OpenStack/Rackspace credentials."
-      puts
-      puts "Cifrado can save this settings in #{ENV['HOME']}/.cifradorc"
-      puts "for later use."
-      puts "The settings (password included) are saved unencrypted."
-      puts
-      config[:username] = ask(set_color('Username:', :bold))
-      config[:tenant]   = ask(set_color('Tenant:', :bold))
-      system 'stty -echo'
-      config[:password] = ask(set_color 'Password:', :bold)
-      system 'stty echo'
-      puts
-      config[:auth_url] = ask(set_color 'Auth URL:', :bold)
-
-      if yes? "Do you want to save these settings?"
-        if File.exist?(config_file)
-          backup = "#{config_file}.bak.#{Time.now.to_i}"
-          FileUtils.cp config_file, backup
-          Log.info "Saving backup file to #{backup}."
-        end
-        File.open(config_file, 'w') do |f| 
-          f.puts config.to_yaml
-          f.chmod 0600
-        end
-        @settings_saved = true
-      end
-
-      Log.debug "Setup done"
-      config
-    end
-
-    desc "set-acl CONTAINER", 'Set an ACL on containers and objects'
-    option :acl, :type => :string, :required => true
-    def set_acl(container, object = nil)
-      client = client_instance
-      client.set_acl options[:acl], container
-    end
-
-    desc "upload CONTAINER FILE", "Upload a file"
-    option :encrypt, :desc => 'Encrypt: a:recipient (asymmetric) or symmetric'
-    option :segments, :type => :numeric, :desc => "Split the data in segments"
-    option :strip_path, :type => :boolean
-    option :progressbar, :default => :fancy
-    option :bwlimit, :type => :numeric
-    option :force, :type => :boolean
-    def upload(container, file)
-      unless file and File.exist?(file)
-        Log.error "File '#{file}' does not exist"
-        exit 1
-      end
-
-      client = client_instance 
-
-      tstart = Time.now
-      uploaded = nil
-      files = []
-      if File.directory?(file)
-        files = Dir["#{file}/**/*"].reject { |f| File.directory?(f) }
-      else
-        files << file
-      end
-
-      begin
-        uploaded = []
-        files.each do |f|
-          if options[:segments]
-            uploaded << split_and_upload(client, container, f)
-          else
-            begin
-              res = client.service.head_object(
-                      container, 
-                      clean_object_name(f)
-              )
-              if res.headers['Etag'] == Digest::MD5.file(f).to_s
-                if options[:force]
-                  Log.warn "File #{f} already uploaded and MD5 matches."
-                  Log.warn "Since --force was used, uploading it again."
-                  uploaded << upload_single(client, container, f)
-                else
-                  Log.warn "File #{f} already uploaded and MD5 matches, skipping."
-                end
-              else
-                Log.warn "File #{f} already uploaded, but it has changed."
-                if options[:force]
-                  Log.warn "Overwriting it as requested (--force)."
-                  uploaded << upload_single(client, container, f)
-                else
-                  Log.warn "Since --force was not used, skipping it."
-                end
-              end
-            rescue Fog::Storage::OpenStack::NotFound
-              # Remote file not found, upload it
-              uploaded << upload_single(client, container, f)
-            end
-          end
-          if uploaded.size > 0
-            Log.info "Time taken #{(Time.now - tstart).round} s."
-          end
-        end
-        uploaded.flatten
-      rescue Exception => e
-        Log.error e.message
-        Log.debug e.backtrace.inspect
-        exit 1
-      end
-    end
-
     private
-
     def bwlimit
       (options[:bwlimit] * 1024 * 1024)/8 if options[:bwlimit]
     end
@@ -338,44 +26,22 @@ module Cifrado
         Log.level = Logger::WARN
       end
 
-      begin
-        config = check_options
-        if options[:insecure]
-          Log.warn "SSL verification DISABLED"
-        end
-        client = Cifrado::SwiftClient.new :username => config[:username], 
-                                          :api_key  => config[:password],
-                                          :auth_url => config[:auth_url],
-                                          :tenant   => config[:tenant],
-                                          :connection_options => { 
-                                            :ssl_verify_peer => !options[:insecure] 
-                                          }
-        @client = client
-        @config = config
-        # Validate connection
-        client.test_connection
-        return client
-      rescue Excon::Errors::Unauthorized => e
-        Log.error set_color("Unauthorized.", :red, true)
-        Log.error "Double check the username, password and auth_url."
-      rescue Excon::Errors::SocketError => e
-        if e.message =~ /Unable to verify certificate|hostname (was|does) not match (with )?the server/
-          Log.error "Unable to verify SSL certificate."
-          Log.error "If the server is using a self-signed certificate, try using --insecure."
-          Log.error "Please be aware of the security implications."
-        else
-          Log.error e.message
-        end
-        Log.debug e.backtrace.inspect
-      rescue SystemExit => e
-        # pass
-      rescue Exception => e
-        Log.error e.message
-        Log.debug e.backtrace.inspect
-      ensure
-        system 'stty echo icanon'
+      config = check_options
+      if options[:insecure]
+        Log.warn "SSL verification DISABLED"
       end
-      exit 1
+      client = Cifrado::SwiftClient.new :username => config[:username], 
+                                        :api_key  => config[:password],
+                                        :auth_url => config[:auth_url],
+                                        :tenant   => config[:tenant],
+                                        :connection_options => { 
+                                          :ssl_verify_peer => !options[:insecure] 
+                                        }
+      @client = client
+      @config = config
+      # Validate connection
+      client.test_connection
+      client
     end
 
     def check_options
@@ -391,20 +57,23 @@ module Cifrado
           original_config = config.dup
         rescue => e
           Cifrado::Log.error "Error loading config file"
-          Cifrado::Log.error e.message
-          Cifrado::Log.error e.backtrace.inspect
+          raise e
         end
       end
 
-      config[:username] = options[:username] || config[:username]
-      config[:password] = options[:password] || config[:password]
-      config[:auth_url] = options[:auth_url] || config[:auth_url] 
-      config[:tenant]   = options[:tenant]   || config[:tenant] 
+      config[:username]        = options[:username] || config[:username]
+      config[:password]        = options[:password] || config[:password]
+      config[:auth_url]        = options[:auth_url] || config[:auth_url] 
+      config[:tenant]          = options[:tenant]   || config[:tenant] 
+      config[:secure_random]   = config[:secure_random]
+      unless config[:secure_random]
+        raise Exception.new("secure_random key not found in ~/.cifradorc")
+      end
       [:username, :password, :auth_url, :tenant].each do |opt|
         if config[opt].nil?
           Log.error "#{opt.to_s.capitalize} not provided."
           Log.error "Use --#{opt.to_s.gsub('_', '-')} option or run 'cifrado setup' first."
-          exit 1
+          raise "Missing setting"
         end
       end
 
@@ -460,7 +129,7 @@ module Cifrado
       elsif etype == 's' or etype == 'symmetric'
         if etype == 'symmetric'
           Log.info "Password to encrypt the data required"
-          system 'stty -echo -icanon'
+          system 'stty -echo'
           passphrase = ask("Enter passphrase:")
           puts
           passphrase2 = ask("Repeat passphrase:")
@@ -468,7 +137,7 @@ module Cifrado
           if passphrase != passphrase2
             raise 'Passphrase does not match'
           end
-          system 'stty echo icanon'
+          system 'stty echo'
         else
           passphrase = tokens[1..-1].join(':')
         end
@@ -581,12 +250,42 @@ module Cifrado
   end
 end
 
+require 'cifrado/cli/stat'
+require 'cifrado/cli/download'
+require 'cifrado/cli/list'
+require 'cifrado/cli/post'
+require 'cifrado/cli/delete'
+require 'cifrado/cli/setup'
+require 'cifrado/cli/upload'
+require 'cifrado/cli/set_acl'
 require 'cifrado/cli/jukebox'
 
 at_exit do
+  include Cifrado::Utils
+  include Cifrado
   e = $!
   if e
-    Log.fatal e.message
-    Log.debug e.backtrace.inspect
+    if e.is_a? Excon::Errors::Unauthorized
+      Log.error set_color("Unauthorized.", :red, true)
+      Log.error "Double check the username, password and auth_url."
+    elsif e.is_a? Excon::Errors::SocketError
+      if e.message =~ /Unable to verify certificate|hostname (was|does) not match (with )?the server/
+        Log.error "Unable to verify SSL certificate."
+        Log.error "If the server is using a self-signed certificate, try using --insecure."
+        Log.error "Please be aware of the security implications."
+      else
+        Log.error e.message
+      end
+    elsif e.is_a? RuntimeError
+      Log.error e.message
+    elsif e.is_a? Interrupt
+      Log.info
+      Log.info 'At your command, Sir!'
+    else
+      Log.fatal e.message
+    end
+    system 'stty echo'
+    prettify_backtrace e
+    exit! 1
   end
 end
