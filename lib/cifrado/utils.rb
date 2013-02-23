@@ -3,6 +3,10 @@ require 'digest/sha1'
 module Cifrado
   module Utils
 
+    def prettify_backtrace(e)
+      Log.debug e.backtrace.join("\nDEBUG: ")
+    end
+
     def mime_type(file)
       mime = `/usr/bin/file -b --mime-type #{Shellwords.escape(file)} 2>/dev/null`.strip.chomp
       mime.empty? ? nil : mime
