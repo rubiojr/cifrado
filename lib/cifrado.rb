@@ -17,7 +17,7 @@ module Cifrado
     shell = Thor::Shell::Color.new
     Log = Logger.new($stdout)
     Log.formatter = proc do |severity, datetime, progname, msg|
-      if severity == 'ERROR'
+      if severity == 'ERROR' or severity == 'FATAL'
         "#{shell.set_color(severity, :red, true)}: #{msg}\n"
       elsif severity == 'WARN'
         "#{shell.set_color(severity, :yellow, true)}: #{msg}\n"
