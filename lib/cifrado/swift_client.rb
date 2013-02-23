@@ -28,13 +28,22 @@ module Cifrado
       authenticate_v2
     end
 
-    def file_available?(container, object)
+    def head(container = nil, object = nil)
       begin 
-      res = service.head_object(container, object)
-        return true if res.status == 200
+        if container and object
+          service.head_object(container, object).headers
+        elsif container
+          service.head_container(container).headers
+        else
+          (service.request :method => 'HEAD').headers
+        end
       rescue Fog::Storage::OpenStack::NotFound
+        nil
       end
-      false
+    end
+
+    def file_available?(container, object)
+      !head(container, object).nil?
     end
 
     def service
@@ -54,13 +63,6 @@ module Cifrado
 
     def create_directory(container, wait_for_it = false)
       create_container container, wait_for_it
-    end
-
-    def head(url, params = {})
-      params[:headers] = (params[:headers] || {}).merge(
-        { 'X-Auth-Token' => service.credentials[:token] }
-      )
-      Excon.head url, params
     end
 
     def encrypted_upload(container, object, options = {})
