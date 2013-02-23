@@ -43,6 +43,10 @@ module Cifrado
       end
     end
 
+    def create_directory(container, wait_for_it = false)
+      create_container container, wait_for_it
+    end
+
     def head(url, params = {})
       params[:headers] = (params[:headers] || {}).merge(
         { 'X-Auth-Token' => service.credentials[:token] }
@@ -235,6 +239,7 @@ module Cifrado
       dir = service.directories.create :key => container
       # Wait for the new container to be available
       dir.wait_for { !service.directories.get(container).nil? } if wait_for_it
+      dir
     end
     
     def add_manifest(container, object)
