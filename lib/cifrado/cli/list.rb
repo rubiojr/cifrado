@@ -16,25 +16,36 @@ module Cifrado
           Log.info "Listing objects in '#{container}'"
           files = dir.files
           files.each do |f|
+            fname = f.key
             unless options[:decrypt_filenames]
-              list << f.key
-              puts f.key
+              list << fname
+              Log.info fname
               next
             end
             # Skip segments
-            next if f.key =~ /\/segments\/\d+\.\d{2}\/\d+\/\d+/ and \
+            next if fname =~ /\/segments\/\d+\.\d{2}\/\d+\/\d+/ and \
                     not options[:list_segments]
 
-            metadata = f.metadata
+            # Raises exception if the object is a
+            # manifest but there are no segments available
+            begin 
+              metadata = f.metadata
+            rescue Fog::Storage::OpenStack::NotFound
+              Log.warn "The file #{fname} is an object manifest, but there are no segments"
+              Log.warn "available. I won't be able to decrypt the filename."
+              Log.info fname
+              list << fname
+              next
+            end
             if metadata[:encrypted_name] 
               fname = decrypt_filename metadata[:encrypted_name], 
                                        @config[:password] + @config[:secure_random]
-              puts "#{fname.ljust(55)} #{set_color("[encrypted]",:red, :bold)}"
-              puts "  hash: #{f.key}" if options[:display_hash]
+              Log.info "#{fname.ljust(55)} #{set_color("[encrypted]",:red, :bold)}"
+              Log.info "  hash: #{f.key}" if options[:display_hash]
             else
-              puts f.key.ljust(55)
+              Log.info fname.ljust(55)
             end
-            list << f.key
+            list << fname
           end 
           list
         else
@@ -43,7 +54,7 @@ module Cifrado
       else
         Log.info "Listing containers"
         directories = client.service.directories
-        directories.each { |d| puts d.key }
+        directories = directories.map { |d| Log.info d.key; d.key }
         directories
       end
     end
