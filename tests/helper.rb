@@ -16,6 +16,7 @@ def client
   client = SwiftClient.new  :username => conf[:username],
                             :api_key  => conf[:password],
                             :auth_url => conf[:auth_url],
+                            :password_salt => conf[:secure_random],
                             :connection_options => { :ssl_verify_peer => false }
 end
 

@@ -18,6 +18,7 @@ module Cifrado
       @connection_options = auth_data[:connection_options] || {}
       @service_type = auth_data[:service_type] || 'object-store'
       @endpoint_type = auth_data[:endpoint_type] || 'publicURL'
+      @password_salt = auth_data[:password_salt]
 
       @connection_options.each do |k, v|
         Excon.defaults[k] = v
@@ -208,7 +209,11 @@ module Cifrado
         encrypted_name = res['X-Object-Meta-Encrypted-Name']
         if encrypted_name
           Log.debug 'Encrypted filename found, decrypting'
-          decrypted_name = decrypt_filename encrypted_name, @api_key
+          if @password_salt
+            decrypted_name = decrypt_filename encrypted_name, @api_key + @password_salt
+          else
+            decrypted_name = decrypt_filename encrypted_name, @api_key
+          end
           Log.debug "Decrypted filename: #{decrypted_name}"
           if options[:output].nil?
             dest_file = File.join(Dir.pwd, decrypted_name)

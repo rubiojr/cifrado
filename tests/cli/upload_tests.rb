@@ -56,7 +56,8 @@ Shindo.tests('Cifrado | CLI#upload') do
       end
       test 'decrypted name matches' do
         header = cli.stat('cifrado-tests', obj_path)['X-Object-Meta-Encrypted-Name']
-        decrypted_name = decrypt_filename header, cli.config[:password]
+        decrypted_name = decrypt_filename header, 
+                                          cli.config[:password] + cli.config[:secure_random]
         decrypted_name == obj 
       end
 
@@ -104,7 +105,8 @@ Shindo.tests('Cifrado | CLI#upload') do
           end
           test "manifest #{s} name can be decrypted" do
             header = cli.stat(test_container.key, s)['X-Object-Meta-Encrypted-Name']
-            decrypted_name = decrypt_filename header, cli.config[:password]
+            decrypted_name = decrypt_filename header, 
+                                              cli.config[:password] + cli.config[:secure_random]
             decrypted_name == obj
           end
         else
@@ -113,7 +115,8 @@ Shindo.tests('Cifrado | CLI#upload') do
           end
           test "segment #{s} name can be decrypted" do
             header = cli.stat(test_container_segments_name, s)['X-Object-Meta-Encrypted-Name']
-            decrypted_name = decrypt_filename header, cli.config[:password]
+            decrypted_name = decrypt_filename header, 
+                                              cli.config[:password] + cli.config[:secure_random]
             (decrypted_name =~ /#{obj}\/segments\//) == 0
           end
         end

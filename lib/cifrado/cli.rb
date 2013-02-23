@@ -16,6 +16,10 @@ module Cifrado
     class_option :insecure, :type => :boolean, :desc => "Insecure SSL connections"
 
     private
+    def secure_password
+      @config[:password] + @config[:secure_random]
+    end
+
     def bwlimit
       (options[:bwlimit] * 1024 * 1024)/8 if options[:bwlimit]
     end
@@ -34,6 +38,7 @@ module Cifrado
                                         :api_key  => config[:password],
                                         :auth_url => config[:auth_url],
                                         :tenant   => config[:tenant],
+                                        :password_salt => config[:secure_random],
                                         :connection_options => { 
                                           :ssl_verify_peer => !options[:insecure] 
                                         }
@@ -95,7 +100,7 @@ module Cifrado
         Log.debug "Writing encrypted file to #{encrypted_file}"
         encrypted_output = cs.encrypt object, 
                                       encrypted_file
-        encrypted_name = encrypt_filename object, @config[:password]
+        encrypted_name = encrypt_filename object, secure_password
         client.upload container, 
                       encrypted_output, 
                       :headers => { 
@@ -194,7 +199,7 @@ module Cifrado
           obj_path = File.basename(out) + suffix
           Log.debug "Encrypted object path: #{obj_path}"
           encrypted_name = encrypt_filename object + suffix,
-                                            @config[:password]
+                                            secure_password
           headers = { 
             'X-Object-Meta-Encrypted-Name' => encrypted_name 
           }
@@ -230,7 +235,7 @@ module Cifrado
             "#{Fog::OpenStack.escape(target_manifest)}"
       headers = { 'X-Object-Manifest' => xom }
       if options[:encrypt]
-        encrypted_name = encrypt_filename object, @config[:password]
+        encrypted_name = encrypt_filename object, secure_password
         headers['X-Object-Meta-Encrypted-Name'] = encrypted_name
       end
       client.create_directory container

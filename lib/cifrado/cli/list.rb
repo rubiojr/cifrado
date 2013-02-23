@@ -9,6 +9,7 @@ module Cifrado
     option :display_hash, :type => :boolean
     def list(container = nil)
       client = client_instance
+      list = []
       if container
         dir = client.service.directories.get container
         if dir
@@ -16,6 +17,7 @@ module Cifrado
           files = dir.files
           files.each do |f|
             unless options[:decrypt_filenames]
+              list << f.key
               puts f.key
               next
             end
@@ -25,16 +27,18 @@ module Cifrado
 
             metadata = f.metadata
             if metadata[:encrypted_name] 
-              fname = decrypt_filename metadata[:encrypted_name], @config[:password]
+              fname = decrypt_filename metadata[:encrypted_name], 
+                                       @config[:password] + @config[:secure_random]
               puts "#{fname.ljust(55)} #{set_color("[encrypted]",:red, :bold)}"
               puts "  hash: #{f.key}" if options[:display_hash]
             else
               puts f.key.ljust(55)
             end
+            list << f.key
           end 
-          files
+          list
         else
-          Log.error "Container '#{container}' not found"
+          raise "Container '#{container}' not found"
         end
       else
         Log.info "Listing containers"
