@@ -27,28 +27,28 @@ module Cifrado
       sleep_counter = 0.01
       read = 0
       time = Time.now.to_f 
+      file = File.open(output, "wb") unless options[:stream]
+      callback = options[:progress_callback]
 
       http.request(request) do |response|
         clength = response['Content-Length'].to_i
-        File.open(output, "wb") do |file|
-          response.read_body do |segment|
-            if bwlimit > 0
-              bps = read/(Time.now.to_f - time)
-              if (bps > bwlimit) 
-                sleep sleep_counter
-                sleep_counter += 0.01
-              else
-                sleep_counter -= 0.01 if sleep_counter >= 0.02
-              end
-              read += segment.length
+        response.read_body do |segment|
+          if bwlimit > 0
+            bps = read/(Time.now.to_f - time)
+            if (bps > bwlimit) 
+              sleep sleep_counter
+              sleep_counter += 0.01
+            else
+              sleep_counter -= 0.01 if sleep_counter >= 0.02
             end
-            if options[:progress_callback]
-              options[:progress_callback].call clength, segment.length, segment
-            end
-            file.write(segment)
+            read += segment.length
           end
+          callback.call(clength, segment.length, segment) if callback
+          file.write(segment) if file
         end
       end
+    ensure
+      file.close if file
     end
 
   end

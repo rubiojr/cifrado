@@ -22,11 +22,10 @@ module Cifrado
       @connection_options.each do |k, v|
         Excon.defaults[k] = v
       end
-      authenticate_v2
     end
 
     def service
-      @service
+      @service ||= authenticate_v2
     end
 
     def set_acl(acl, container, object = nil)
@@ -70,18 +69,15 @@ module Cifrado
 
       path = File.join('/', container, object_path)
 
-      storage_url = @service.credentials[:server_management_url]
-      auth_token  = @service.credentials[:token]
-
-      Log.debug "X-Storage-Url: #{storage_url}"
+      Log.debug "X-Storage-Url: #{@storage_url}"
 
       create_container container, true
 
-      Log.debug "Destination URI: " + storage_url + path
+      Log.debug "Destination URI: " + @storage_url + path
 
       pcallback = options[:progress_callback]
       nchunk = 0
-      headers = { 'X-Auth-Token' => auth_token }
+      headers = { 'X-Auth-Token' => @auth_token }
       if mime = mime_type(object)
         headers['Content-Type'] = mime
       end
@@ -90,7 +86,7 @@ module Cifrado
       end
       if pcallback
         res = Cifrado::StreamingUploader.put(
-            storage_url + Fog::OpenStack.escape(path),
+            @storage_url + Fog::OpenStack.escape(path),
             :headers => headers, 
             :file => File.open(object),
             :ssl_verify_peer => @connection_options[:ssl_verify_peer],
@@ -98,7 +94,7 @@ module Cifrado
         ) { |bytes| pcallback.call(object_size, bytes) }
       else
         res = Cifrado::StreamingUploader.put(
-            storage_url + Fog::OpenStack.escape(path),
+            @storage_url + Fog::OpenStack.escape(path),
             :headers => headers, 
             :file => File.open(object),
             :ssl_verify_peer => @connection_options[:ssl_verify_peer],
@@ -116,6 +112,12 @@ module Cifrado
 
     def user_agent
       "Cifrado #{Cifrado::VERSION}"
+    end
+    
+    def stream(container, object, options = {})
+      o = options.dup
+      o[:stream] = true
+      download_object container, object, o
     end
 
     def download(container, object = nil, options = {})
@@ -148,9 +150,7 @@ module Cifrado
 
     private
     def download_object(container, object, options = {})
-      storage_url = @service.credentials[:server_management_url]
-      auth_token  = @service.credentials[:token]
-      storage_url << "/" unless storage_url =~ /\/$/
+      @storage_url << "/" unless @storage_url =~ /\/$/
       object = object[1..-1] if object =~ /^\//
 
       raise ArgumentError.new "Invalid object" unless object
@@ -171,14 +171,15 @@ module Cifrado
 
       headers = {
         "User-Agent" => "#{user_agent}",
-        "X-Auth-Token" => auth_token
+        "X-Auth-Token" => @auth_token
       }
-      res = StreamingDownloader.get storage_url + Fog::OpenStack.escape(path),
+      res = StreamingDownloader.get @storage_url + Fog::OpenStack.escape(path),
                                     tmp_file,
                                     :progress_callback => options[:progress_callback],
                                     :connection_options => @connection_options,
                                     :headers => headers,
-                                    :bwlimit => options[:bwlimit]
+                                    :bwlimit => options[:bwlimit],
+                                    :stream => options[:stream]
 
       #
       # Try to decrypt the file if it was encrypted
@@ -246,6 +247,9 @@ module Cifrado
                                   :openstack_tenant   => @tenant,
                                   :openstack_service_type  => @service_type,
                                   :openstack_endpoint_type => @endpoint_type 
+      @storage_url = @service.credentials[:server_management_url]
+      @auth_token  = @service.credentials[:token]
+      @service
     end
 
 
