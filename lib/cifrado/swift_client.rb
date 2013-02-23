@@ -28,6 +28,15 @@ module Cifrado
       authenticate_v2
     end
 
+    def file_available?(container, object)
+      begin 
+      res = service.head_object(container, object)
+        return true if res.status == 200
+      rescue Fog::Storage::OpenStack::NotFound
+      end
+      false
+    end
+
     def service
       @service ||= authenticate_v2
     end

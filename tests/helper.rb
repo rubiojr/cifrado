@@ -5,6 +5,7 @@ require 'fileutils'
 require 'digest/md5'
 
 include Cifrado
+include Cifrado::Utils
   
 unless ENV['DEBUG']
   Cifrado::Log.level = Logger::ERROR
