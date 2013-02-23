@@ -32,6 +32,7 @@ module Cifrado
       time = Time.now.to_f
       last_time = Time.now.to_f
       Proc.new do |total, bytes| 
+        next if total == 0
         read += bytes
         newt = Time.now.to_f 
         if newt - last_time > 1
