@@ -27,44 +27,30 @@ module Cifrado
       end
       reject_headers << 'Content-Type' unless object
 
-      r = nil
-      if object
-        object = object.gsub(/^\//, '') if object.start_with?('/')
-        begin
-          r = client.service.head_object container, object
-        rescue Fog::Storage::OpenStack::NotFound
-          file_hash = Digest::SHA2.new << object
-          begin
-            r = client.service.head_object(container, file_hash.to_s)
-          rescue Fog::Storage::OpenStack::NotFound
-            Log.error 'Object not found'
+      object = clean_object_name(object) if object
+      headers = client.head(container, object)
+      if headers
+        puts "Account:".ljust(30) + File.basename(URI.parse(mgmt_url).path)
+        headers.sort.each do |k, v| 
+          next if reject_headers.include?(k)
+          if k == 'X-Timestamp'
+            puts "#{(k + ":").ljust(30)}#{v} (#{unix_time(v)})" 
+          elsif k == 'X-Account-Bytes-Used' or k == 'Content-Length'
+            puts "#{(k + ":").ljust(30)}#{v} (#{humanize_bytes(v)})" 
+          elsif k == 'X-Object-Meta-Encrypted-Name'
+            puts "#{(k + ":").ljust(30)}#{v}"
+          else
+            puts "#{(k + ":").ljust(30)}#{v}" 
           end
         end
-      elsif container
-        begin
-          r = client.service.head_container container
-        rescue Fog::Storage::OpenStack::NotFound
-          Log.error 'Container not found'
-        end
+        headers
       else
-        r = client.head mgmt_url
-      end
-
-      return unless r
-      puts "Account:".ljust(30) + File.basename(URI.parse(mgmt_url).path)
-      r.headers.sort.each do |k, v| 
-        next if reject_headers.include?(k)
-        if k == 'X-Timestamp'
-          puts "#{(k + ":").ljust(30)}#{v} (#{unix_time(v)})" 
-        elsif k == 'X-Account-Bytes-Used' or k == 'Content-Length'
-          puts "#{(k + ":").ljust(30)}#{v} (#{humanize_bytes(v)})" 
-        elsif k == 'X-Object-Meta-Encrypted-Name'
-          puts "#{(k + ":").ljust(30)}#{v}"
+        if object
+          Log.error "Object not found."
         else
-          puts "#{(k + ":").ljust(30)}#{v}" 
+          Log.error "Container not found."
         end
       end
-      r.headers
     end
 
     desc "download [CONTAINER] [OBJECT]", "Download container, objects"
@@ -324,12 +310,12 @@ module Cifrado
                 end
               end
             rescue Fog::Storage::OpenStack::NotFound
+              # Remote file not found, upload it
               uploaded << upload_single(client, container, f)
             end
           end
           if uploaded.size > 0
-            tend = Time.now
-            Log.info "Time taken #{(tend - tstart).round} s."
+            Log.info "Time taken #{(Time.now - tstart).round} s."
           end
         end
         uploaded.flatten
@@ -521,7 +507,7 @@ module Cifrado
         target_manifest = File.basename(out)
       else
         target_manifest = (options[:strip_path] ? \
-                              File.basename(object) : object.gsub(/^\//, ''))
+                              File.basename(object) : clean_object_name(object))
       end
 
       Log.info "Segmenting file, #{options[:segments]} segments..."
@@ -594,4 +580,13 @@ module Cifrado
 
   end
 end
+
 require 'cifrado/cli/jukebox'
+
+at_exit do
+  e = $!
+  if e
+    Log.fatal e.message
+    Log.debug e.backtrace.inspect
+  end
+end
