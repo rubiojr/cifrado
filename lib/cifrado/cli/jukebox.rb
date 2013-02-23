@@ -1,5 +1,3 @@
-require 'open3'
-
 module Cifrado
   class CLI
 
@@ -11,8 +9,6 @@ module Cifrado
       token = client.service.credentials[:token]
       mgmt_url = client.service.credentials[:server_management_url]
       
-      tmpout = "/tmp/#{SecureRandom.hex}"
-
       mpbin = '/usr/bin/mplayer'
       mpbin = File.exist?(mpbin) ? \
         mpbin : `which /usr/bin/mplayer`.strip.chomp
@@ -55,12 +51,10 @@ module Cifrado
           end
           Log.info "#{set_color 'Playing', :bold} song"
           Log.info "  * #{song.key}"
-          r = client.download container, 
-                              song.key, 
-                              :output => tmpout,
-                              :progress_callback => cb
+          r = client.stream container, 
+                            song.key, 
+                            :progress_callback => cb
           Log.debug "Song finished streaming"
-          File.delete tmpout
         rescue Interrupt => e
           Log.debug "Closing pipe, killing mplayer"
           pipe.close unless pipe.closed?
