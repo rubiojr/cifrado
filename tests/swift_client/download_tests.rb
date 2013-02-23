@@ -27,8 +27,8 @@ Shindo.tests('Cifrado | SwiftClient#download') do
         cli.options = cli_options.merge({
           :encrypt  => 'a:rubiojr',
         })
-        obj_path = cli.upload test_container.key, obj
-        r = client.download test_container.key, 
+        obj_path = cli.upload test_container_name, obj
+        r = client.download test_container_name, 
                             obj_path,
                             :output => output,
                             :decrypt => true
@@ -47,8 +47,8 @@ Shindo.tests('Cifrado | SwiftClient#download') do
         cli.options = cli_options.merge({
           :encrypt  => 'a:rubiojr',
         })
-        obj_path = cli.upload test_container.key, obj
-        r = client.download test_container.key, 
+        obj_path = cli.upload test_container_name, obj
+        r = client.download test_container_name, 
                             obj_path,
                             :decrypt => true
         downloaded_file = File.join(output, obj)
@@ -66,8 +66,8 @@ Shindo.tests('Cifrado | SwiftClient#download') do
         Dir.chdir output
         cli = Cifrado::CLI.new
         cli.options = cli_options
-        obj_path = cli.upload test_container.key, obj
-        r = client.download test_container.key, 
+        obj_path = cli.upload test_container_name, obj
+        r = client.download test_container_name, 
                             obj_path,
                             :decrypt => true
         downloaded_file = File.join(output, obj)
@@ -105,11 +105,13 @@ Shindo.tests('Cifrado | SwiftClient#download') do
 
         tests "contents in #{output}" do
           FileUtils.mkdir output
-          client.download container.key, 
-                          nil, 
-                          :output => output,
-                          :decrypt => true,
-                          :passphrase => passphrase
+          returns(Excon::Response,"download contents to #{output}") do
+            client.download(container.key, 
+                            nil, 
+                            :output => output,
+                            :decrypt => true,
+                            :passphrase => passphrase).class
+          end
           [obj, obj2, obj3].each do |o|
             test "includes #{o}" do
               Dir["#{output}/**/*"].include?(File.join(output, obj))
@@ -140,11 +142,11 @@ Shindo.tests('Cifrado | SwiftClient#download') do
     test "to current dir" do
       obj = create_bin_payload 1
       md5 = Digest::MD5.file obj
-      client.upload(test_container.key, obj) 
+      client.upload(test_container_name, obj) 
       cwd = Dir.pwd
       Dir.mkdir '/tmp/cifrado'
       Dir.chdir '/tmp/cifrado'
-      r = client.download test_container.key,
+      r = client.download test_container_name,
                           obj
       file = File.join(Dir.pwd, obj)
       Digest::MD5.file(file) == md5 
@@ -192,8 +194,8 @@ Shindo.tests('Cifrado | SwiftClient#download') do
       cb = Proc.new do |bytes|
         chunks << bytes 
       end
-      client.upload test_container.key, obj
-      client.download test_container.key, 
+      client.upload test_container_name, obj
+      client.download test_container_name, 
                       obj, 
                       :output => tmpfile,
                       :progress_callback => cb

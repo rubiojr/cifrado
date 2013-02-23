@@ -19,9 +19,19 @@ def client
 end
 
 def test_container
-  @container ||= begin
-    client.service.directories.create :key => 'cifrado-tests'
-  end
+  client.service.directories.create :key => test_container_name
+end
+
+def test_container_name
+  'cifrado-tests'
+end
+
+def test_container_segments_name
+  'cifrado-tests_segments'
+end
+
+def test_container_segments
+  client.service.directories.create :key => test_container_segments_name
 end
 
 # Size in KB
@@ -55,12 +65,15 @@ def clean_test_payloads
 end
 
 def clean_test_container
-  dir = client.service.directories.get test_container.key
-  if dir
+  if dir = test_container
     dir.files.each do |f|
       f.destroy
     end
-    dir.destroy
+  end
+  if dir = test_container_segments
+    dir.files.each do |f|
+      f.destroy
+    end
   end
 end
 
@@ -82,4 +95,6 @@ end
 at_exit do
   puts "Cleaning up..."
   cleanup
+  test_container_segments.destroy
+  test_container.destroy
 end

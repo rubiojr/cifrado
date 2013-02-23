@@ -366,6 +366,8 @@ module Cifrado
                                           }
         @client = client
         @config = config
+        # Validate connection
+        client.test_connection
         return client
       rescue Excon::Errors::Unauthorized => e
         Log.error set_color("Unauthorized.", :red, true)
@@ -556,7 +558,7 @@ module Cifrado
                              n,
                              :style => options[:progressbar]
 
-        client.upload container, 
+        client.upload container + "_segments", 
                       segment,
                       :headers => headers,
                       :object_path => obj_path,
@@ -568,12 +570,15 @@ module Cifrado
       end
       
       # We need this for segmented uploads
-      Log.debug "Adding manifest #{target_manifest}"
-      headers = {}
+      Log.debug "Adding manifest path #{target_manifest}"
+      xom = "#{Fog::OpenStack.escape(container + '_segments')}/" +
+            "#{Fog::OpenStack.escape(target_manifest)}"
+      headers = { 'X-Object-Manifest' => xom }
       if options[:encrypt]
         encrypted_name = encrypt_filename object, @config[:password]
-        headers = { 'X-Object-Meta-Encrypted-Name' => encrypted_name }
+        headers['X-Object-Meta-Encrypted-Name'] = encrypted_name
       end
+      client.create_directory container
       client.service.put_object_manifest container, 
                                          target_manifest,
                                          headers  

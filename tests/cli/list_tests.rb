@@ -7,7 +7,6 @@ Shindo.tests('Cifrado | CLI#list') do
       obj = create_bin_payload 1
       cli = Cifrado::CLI.new
       cli.options = {
-        :quiet => true,
         :insecure => true,
         :no_progressbar => true
       }
@@ -18,7 +17,6 @@ Shindo.tests('Cifrado | CLI#list') do
       dir = client.service.directories.create :key => 'cifrado-tests-list'
       cli = Cifrado::CLI.new
       cli.options = {
-        :quiet => true,
         :insecure => true,
         :no_progressbar => true
       }
