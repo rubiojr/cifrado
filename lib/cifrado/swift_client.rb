@@ -24,6 +24,10 @@ module Cifrado
       end
     end
 
+    def test_connection
+      authenticate_v2
+    end
+
     def service
       @service ||= authenticate_v2
     end
@@ -150,7 +154,8 @@ module Cifrado
 
     private
     def download_object(container, object, options = {})
-      @storage_url << "/" unless @storage_url =~ /\/$/
+      storage_url = service.credentials[:server_management_url]
+      storage_url << "/" unless storage_url =~ /\/$/
       object = object[1..-1] if object =~ /^\//
 
       raise ArgumentError.new "Invalid object" unless object
@@ -173,7 +178,7 @@ module Cifrado
         "User-Agent" => "#{user_agent}",
         "X-Auth-Token" => @auth_token
       }
-      res = StreamingDownloader.get @storage_url + Fog::OpenStack.escape(path),
+      res = StreamingDownloader.get storage_url + Fog::OpenStack.escape(path),
                                     tmp_file,
                                     :progress_callback => options[:progress_callback],
                                     :connection_options => @connection_options,
