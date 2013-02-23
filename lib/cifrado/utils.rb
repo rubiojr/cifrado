@@ -4,6 +4,7 @@ module Cifrado
   module Utils
 
     def prettify_backtrace(e)
+      Log.debug e.class
       Log.debug e.backtrace.join("\nDEBUG: ")
     end
 
