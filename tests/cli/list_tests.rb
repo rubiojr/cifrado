@@ -20,7 +20,7 @@ Shindo.tests('Cifrado | CLI#list') do
         :insecure => true,
         :no_progressbar => true
       }
-      !(cli.list.find { |d| d.key == 'cifrado-tests-list' }).nil?
+      !(cli.list.find { |d| d == 'cifrado-tests-list' }).nil?
       dir.destroy
     end
   end
