@@ -15,6 +15,7 @@ module Cifrado
       @api_key  = auth_data[:api_key]
       @auth_url = auth_data[:auth_url]
       @tenant   = auth_data[:tenant]
+      @region   = auth_data[:region]
       @connection_options = auth_data[:connection_options] || {}
       @service_type = auth_data[:service_type] || 'object-store'
       @endpoint_type = auth_data[:endpoint_type] || 'publicURL'
@@ -188,7 +189,7 @@ module Cifrado
       end
 
       tmp_file = File.join Config.instance.cache_dir, "#{Time.now.to_f}.download"
-      Log.debug "Downloading file to tmp file #{tmp_file}"
+      Log.debug "Downloading tmp file to #{tmp_file}" unless options[:stream]
 
       headers = {
         "User-Agent" => "#{user_agent}",
@@ -241,10 +242,12 @@ module Cifrado
           Log.debug "Creating target directory #{target_dir}"
           FileUtils.mkdir_p(target_dir)
         end
-        FileUtils.mv tmp_file, dest_file
+        # tmp_file does not exist if we're streaming
+        FileUtils.mv tmp_file, dest_file if File.exist?(tmp_file)
       else
         Log.debug "Download failed, deleting tmp file"
-        FileUtils.rm tmp_file 
+        # tmp_file does not exist if we're streaming
+        FileUtils.rm tmp_file if File.exist?(tmp_file)
       end
       Excon::Response.new :body => res.body,
                           :headers => res.to_hash,
@@ -272,7 +275,8 @@ module Cifrado
                                   :openstack_api_key  => @api_key,
                                   :openstack_tenant   => @tenant,
                                   :openstack_service_type  => @service_type,
-                                  :openstack_endpoint_type => @endpoint_type 
+                                  :openstack_endpoint_type => @endpoint_type,
+                                  :openstack_region => @region
       @storage_url = @service.credentials[:server_management_url]
       @auth_token  = @service.credentials[:token]
       @service
