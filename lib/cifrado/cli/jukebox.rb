@@ -13,14 +13,12 @@ module Cifrado
       mpbin = File.exist?(mpbin) ? \
         mpbin : `which /usr/bin/mplayer`.strip.chomp
       unless File.exist?(mpbin)
-        Log.error "MPlayer binary not found. Install it first."
-        exit 1
+        raise "MPlayer binary not found. Install it first."
       end
 
       dir = client.service.directories.get container
       unless dir
-        Log.error "Container #{container} not found."
-        exit 1
+        raise "Container #{container} not found."
       end
       songs = dir.files
       last_exit = Time.now.to_f
@@ -35,6 +33,7 @@ module Cifrado
       $stderr.reopen('/dev/null', 'w')
       cmd = %w{mplayer -really-quiet -msglevel all=-1 -cache 256 -}
       pipe = IO.popen(cmd, 'w')
+      count = songs.size
       songs.shuffle.each do |song|
         if options[:match] and song.key !~ /#{options[:match]}/i
           next
@@ -62,7 +61,7 @@ module Cifrado
           pipe = IO.popen(cmd, 'w')
           if Time.now.to_f - last_exit < 1
             Log.info set_color "\nAdios!", :bold
-            exit 0
+            return
           else
             last_exit = Time.now.to_f
             Log.info 'Next song...'
@@ -72,6 +71,7 @@ module Cifrado
     ensure
       if pipe and !pipe.closed?
         Log.debug "Closing pipe"
+        Process.kill 'SIGKILL', pipe.pid
         pipe.close 
       end
     end
