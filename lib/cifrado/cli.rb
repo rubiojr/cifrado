@@ -13,6 +13,8 @@ module Cifrado
     class_option :password
     class_option :auth_url
     class_option :tenant
+    class_option :config
+    class_option :region
     class_option :insecure, :type => :boolean, :desc => "Insecure SSL connections"
 
     private
@@ -38,6 +40,7 @@ module Cifrado
                                         :api_key  => config[:password],
                                         :auth_url => config[:auth_url],
                                         :tenant   => config[:tenant],
+                                        :region   => config[:region],
                                         :password_salt => config[:secure_random],
                                         :connection_options => { 
                                           :ssl_verify_peer => !options[:insecure] 
@@ -50,7 +53,7 @@ module Cifrado
     end
 
     def check_options
-      config_file = File.join(ENV['HOME'], '.cifradorc')
+      config_file = options[:config] || File.join(ENV['HOME'], '.cifradorc')
       config = {}
 
       if File.exist?(config_file)
@@ -70,16 +73,17 @@ module Cifrado
       config[:password]        = options[:password] || config[:password]
       config[:auth_url]        = options[:auth_url] || config[:auth_url] 
       config[:tenant]          = options[:tenant]   || config[:tenant] 
+      config[:region]          = options[:region]   || config[:region] 
       config[:secure_random]   = config[:secure_random]
-      unless config[:secure_random]
-        raise Exception.new("secure_random key not found in ~/.cifradorc")
-      end
       [:username, :password, :auth_url, :tenant].each do |opt|
         if config[opt].nil?
           Log.error "#{opt.to_s.capitalize} not provided."
           Log.error "Use --#{opt.to_s.gsub('_', '-')} option or run 'cifrado setup' first."
           raise "Missing setting"
         end
+      end
+      unless config[:secure_random]
+        raise Exception.new("secure_random key not found in #{config_file}")
       end
 
       config
