@@ -54,8 +54,8 @@ module Cifrado
                             song.key, 
                             :progress_callback => cb
           Log.debug "Song finished streaming"
-        rescue Interrupt => e
-          Log.debug "Closing pipe, killing mplayer"
+        rescue Errno::EPIPE, Interrupt => e
+          Log.debug "Closing pipe"
           pipe.close unless pipe.closed?
           Log.debug "Opening new pipe"
           pipe = IO.popen(cmd, 'w')
@@ -70,7 +70,7 @@ module Cifrado
       end
     ensure
       if pipe and !pipe.closed?
-        Log.debug "Closing pipe"
+        Log.debug "Closing pipe, killing mplayer"
         Process.kill 'SIGKILL', pipe.pid
         pipe.close 
       end
