@@ -25,31 +25,35 @@ module Cifrado
 
       uploaded = []
       files.each do |f|
-        if options[:segments]
-          uploaded << split_and_upload(client, container, f)
-        else
-          headers = client.head container, clean_object_name(f)
-          if headers
-            if headers['Etag'] == Digest::MD5.file(f).to_s
-              if options[:force]
-                Log.warn "File #{f} already uploaded and MD5 matches."
-                Log.warn "Since --force was used, uploading it again."
-                uploaded << upload_single(client, container, f)
+        begin
+          if options[:segments]
+            uploaded << split_and_upload(client, container, f)
+          else
+            headers = client.head container, clean_object_name(f)
+            if headers
+              if headers['Etag'] == Digest::MD5.file(f).to_s
+                if options[:force]
+                  Log.warn "File #{f} already uploaded and MD5 matches."
+                  Log.warn "Since --force was used, uploading it again."
+                  uploaded << upload_single(client, container, f)
+                else
+                  Log.warn "File #{f} already uploaded and MD5 matches, skipping."
+                end
               else
-                Log.warn "File #{f} already uploaded and MD5 matches, skipping."
+                Log.warn "File #{f} already uploaded, but it has changed."
+                if options[:force]
+                  Log.warn "Overwriting it as requested (--force)."
+                  uploaded << upload_single(client, container, f)
+                else
+                  Log.warn "Since --force was not used, skipping it."
+                end
               end
             else
-              Log.warn "File #{f} already uploaded, but it has changed."
-              if options[:force]
-                Log.warn "Overwriting it as requested (--force)."
-                uploaded << upload_single(client, container, f)
-              else
-                Log.warn "Since --force was not used, skipping it."
-              end
+              uploaded << upload_single(client, container, f)
             end
-          else
-            uploaded << upload_single(client, container, f)
           end
+        rescue Errno::ENOENT => e
+          Log.error "Error uploading #{f}: " + e.message
         end
       end
       uploaded.flatten

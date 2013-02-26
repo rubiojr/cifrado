@@ -5,12 +5,15 @@ module Cifrado
   class StreamingDownloader
 
     def self.get url, output, options = {}
+      if output.nil? and !options[:stream]
+        raise ArgumentError.new('Invalid output file')
+      end
       uri = URI.parse url
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = true if uri.scheme == "https"
       copts = options[:connection_options]
       if copts[:ssl_verify_peer] == false
-        Log.debug "Downloading file with SSL verification DISABLED"
+        Log.debug "SSL verification DISABLED"
         http.verify_mode = OpenSSL::SSL::VERIFY_NONE 
       end
       #http.open_timeout = 10 # seconds
@@ -21,13 +24,14 @@ module Cifrado
       headers = options[:headers]
       request.initialize_http_header headers
 
-      Log.debug "Downloading file to #{output}"
-      
       bwlimit = options[:bwlimit] || 0
       sleep_counter = 0.01
       read = 0
       time = Time.now.to_f 
-      file = File.open(output, "wb") unless options[:stream]
+      unless options[:stream]
+        file = File.open(output, "wb") 
+        Log.debug "Downloading file to #{output}"
+      end
       callback = options[:progress_callback]
 
       http.request(request) do |response|

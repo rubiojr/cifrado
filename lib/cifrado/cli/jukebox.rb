@@ -54,8 +54,9 @@ module Cifrado
                             song.key, 
                             :progress_callback => cb
           Log.debug "Song finished streaming"
-        rescue Errno::EPIPE, Interrupt => e
+        rescue Timeout::Error, Errno::EPIPE, Interrupt => e
           Log.debug "Closing pipe"
+          prettify_backtrace e
           pipe.close unless pipe.closed?
           Log.debug "Opening new pipe"
           pipe = IO.popen(cmd, 'w')

@@ -136,9 +136,24 @@ module Cifrado
     end
     
     def stream(container, object, options = {})
-      o = options.dup
-      o[:stream] = true
-      download_object container, object, o
+      raise ArgumentError.new "Invalid object" unless object
+
+      storage_url = service.credentials[:server_management_url]
+      storage_url << "/" unless storage_url =~ /\/$/
+
+      path = File.join(container, clean_object_name(object))
+
+      headers = {
+        "User-Agent" => "#{user_agent}",
+        "X-Auth-Token" => @auth_token
+      }
+      res = StreamingDownloader.get storage_url + Fog::OpenStack.escape(path),
+                                    nil,
+                                    :progress_callback => options[:progress_callback],
+                                    :connection_options => @connection_options,
+                                    :headers => headers,
+                                    :bwlimit => options[:bwlimit],
+                                    :stream => true
     end
 
     def download(container, object = nil, options = {})
@@ -189,7 +204,7 @@ module Cifrado
       end
 
       tmp_file = File.join Config.instance.cache_dir, "#{Time.now.to_f}.download"
-      Log.debug "Downloading tmp file to #{tmp_file}" unless options[:stream]
+      Log.debug "Downloading tmp file to #{tmp_file}"
 
       headers = {
         "User-Agent" => "#{user_agent}",
@@ -200,8 +215,7 @@ module Cifrado
                                     :progress_callback => options[:progress_callback],
                                     :connection_options => @connection_options,
                                     :headers => headers,
-                                    :bwlimit => options[:bwlimit],
-                                    :stream => options[:stream]
+                                    :bwlimit => options[:bwlimit]
 
       #
       # Try to decrypt the file if it was encrypted
@@ -242,12 +256,10 @@ module Cifrado
           Log.debug "Creating target directory #{target_dir}"
           FileUtils.mkdir_p(target_dir)
         end
-        # tmp_file does not exist if we're streaming
-        FileUtils.mv tmp_file, dest_file if File.exist?(tmp_file)
+        FileUtils.mv tmp_file, dest_file
       else
         Log.debug "Download failed, deleting tmp file"
-        # tmp_file does not exist if we're streaming
-        FileUtils.rm tmp_file if File.exist?(tmp_file)
+        FileUtils.rm tmp_file
       end
       Excon::Response.new :body => res.body,
                           :headers => res.to_hash,
