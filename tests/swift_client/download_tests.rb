@@ -191,8 +191,8 @@ Shindo.tests('Cifrado | SwiftClient#download') do
     tests "progress callback" do
       obj = create_bin_payload 1
       chunks = []
-      cb = Proc.new do |bytes|
-        chunks << bytes 
+      cb = Proc.new do |length, read, data|
+        chunks << read
       end
       client.upload test_container_name, obj
       client.download test_container_name, 
@@ -200,9 +200,6 @@ Shindo.tests('Cifrado | SwiftClient#download') do
                       :output => tmpfile,
                       :progress_callback => cb
       test "chunks equal File.size" do
-        # FIXME
-        # File.size should be equal to the bytes read
-        # but StreamUploader is buggy
         File.size(obj) == chunks.inject(:+)
       end
     end

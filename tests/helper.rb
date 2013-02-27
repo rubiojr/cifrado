@@ -12,10 +12,11 @@ unless ENV['DEBUG']
 end
 
 def client
-  conf = YAML.load_file File.expand_path("~/.cifradorc")
+  conf = YAML.load_file File.expand_path("~/.config/cifrado/cifradorc")
   client = SwiftClient.new  :username => conf[:username],
                             :api_key  => conf[:password],
                             :auth_url => conf[:auth_url],
+                            :region   => conf[:region],
                             :password_salt => conf[:secure_random],
                             :connection_options => { :ssl_verify_peer => false }
 end
