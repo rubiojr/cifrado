@@ -33,7 +33,13 @@ module Cifrado
 
 end
 
-fog_path = File.join(File.dirname(__FILE__), '/../', 'vendor/fog/lib')
+vendored_fog = File.join(File.dirname(__FILE__), 'cifrado/vendor/fog/lib')
+if File.directory?(vendored_fog)
+  fog_path = vendored_fog
+else
+  fog_path = File.join(File.dirname(__FILE__), '/../', 'vendor/fog/lib')
+end
+
 $:.insert 0, fog_path
 require 'fog/openstack'
 require 'cifrado/swift_client'
