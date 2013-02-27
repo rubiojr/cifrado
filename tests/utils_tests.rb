@@ -7,7 +7,6 @@ Shindo.tests('Cifrado | Utils') do
       clean_object_name('./foo/bar/stuff') == 'foo/bar/stuff'
     end
     test '//foo/bar/stuff' do
-      puts clean_object_name('//foo/bar/stuff')
       clean_object_name('//foo/bar/stuff') == 'foo/bar/stuff'
     end
     test '/foo/bar/stuff' do
