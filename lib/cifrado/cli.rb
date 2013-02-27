@@ -53,7 +53,7 @@ module Cifrado
     end
 
     def check_options
-      config_file = options[:config] || File.join(ENV['HOME'], '.cifradorc')
+      config_file = options[:config] || File.join(ENV['HOME'], '.config/cifrado/cifradorc')
       config = {}
 
       if File.exist?(config_file)
@@ -275,7 +275,7 @@ at_exit do
   e = $!
   if e
     if e.is_a? Excon::Errors::Unauthorized
-      Log.error set_color("Unauthorized.", :red, true)
+      Log.error "Unauthorized"
       Log.error "Double check the username, password and auth_url."
     elsif e.is_a? Excon::Errors::SocketError
       if e.message =~ /Unable to verify certificate|hostname (was|does) not match (with )?the server/
