@@ -1,0 +1,21 @@
+Source: cifrado
+Section: ruby
+Priority: optional
+Maintainer: Debian Ruby Extras Maintainers <pkg-ruby-extras-maintainers@lists.alioth.debian.org>
+Uploaders: Sergio Rubio <rubiojr@frameos.org>
+DM-Upload-Allowed: yes
+Build-Depends: debhelper (>= 7.0.50~), gem2deb (>= 0.2.13)
+Standards-Version: 3.9.3
+#Vcs-Git: git://git.debian.org/pkg-ruby-extras/cifrado.git
+#Vcs-Browser: http://git.debian.org/?p=pkg-ruby-extras/cifrado.git;a=summary
+Homepage: http://rubiojr.github.com/cifrado
+XS-Ruby-Versions: all
+
+Package: cifrado
+Architecture: all
+XB-Ruby-Versions: ${ruby:Versions}
+Depends: ${shlibs:Depends}, ${misc:Depends}, ruby | ruby-interpreter, ruby-thor, ruby-progressbar, ruby-multi-json, ruby-mime-types, gnupg, ruby-excon, ruby-formatador
+# excon (>= 0), thor (>= 0.17), ruby-progressbar (>= 0), multi_json (>= 0), mime-types (>= 0), yajl-ruby (>= 0), formatador (>= 0), shindo (>= 0, development)
+Recommends: mplayer
+Description: OpenStack Swift CLI with encryption support
+ OpenStack Swift CLI with encryption support
