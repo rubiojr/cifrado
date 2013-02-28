@@ -1,59 +1,197 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
-    <meta charset='utf-8'>
+    <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-
-    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
-    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
-    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
-
     <title>Cifrado by rubiojr</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
   </head>
-
   <body>
+    <div class="wrapper">
+      <header>
+        <h1 class="header">Cifrado</h1>
+        <p class="header">OpenStack Swift CLI with encryption support</p>
 
-    <header>
-      <div class="container">
+        <ul>
+          <li class="download"><a class="buttons" href="https://github.com/rubiojr/cifrado/zipball/master">Download ZIP</a></li>
+          <li class="download"><a class="buttons" href="https://github.com/rubiojr/cifrado/tarball/master">Download TAR</a></li>
+          <li><a class="buttons github" href="https://github.com/rubiojr/cifrado">View On GitHub</a></li>
+        </ul>
+
+        <p class="header">This project is maintained by <a class="header name" href="https://github.com/rubiojr">rubiojr</a></p>
+
+
+      </header>
+      <section>
         <h1>Cifrado</h1>
-        <h2>OpenStack Swift CLI with encryption support</h2>
 
-        <section id="downloads">
-          <a href="https://github.com/rubiojr/cifrado/zipball/master" class="btn">Download as .zip</a>
-          <a href="https://github.com/rubiojr/cifrado/tarball/master" class="btn">Download as .tar.gz</a>
-          <a href="https://github.com/rubiojr/cifrado" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
-        </section>
-      </div>
-    </header>
+<p><strong>WARNING</strong> </p>
 
-    <div class="container">
-      <section id="main_content">
-        <h1>Cifrado</h1>
+<p>The current Cifrado release is experimental. Use at your own risk.</p>
 
-<p>OpenStack Swift CLI with built in (gpg) encryption.</p>
+<p>OpenStack Swift CLI with built in (GPG) encryption.</p>
+
+<h2>Features available in Cifrado 0.1</h2>
+
+<ul>
+<li>Uploading/downloading files and directories to OpenStack Swift.</li>
+<li>Asymmetric/Symmetric transparent encryption/decryption of files
+when uploading/downloading using GnuPG.</li>
+<li>Segmented uploads (splitting the file in multiple segments).</li>
+<li>Progressbar!</li>
+<li>Bandwidth limits when uploading/downloading stuff.</li>
+<li>Music streaming (streams the mp3/ogg files available in a container
+and plays them using mplayer if available).</li>
+<li>Regular list/delete/stat commands.</li>
+</ul><p>Cifrado has a built-in help command:</p>
+
+<pre><code>[9648][rubiojr.blueleaf] cifrado help
+Tasks:
+  cifrado delete CONTAINER [OBJECT]      # Delete specific container or object
+  cifrado download [CONTAINER] [OBJECT]  # Download container, objects
+  cifrado help [TASK]                    # Describe available tasks or one s...
+  cifrado jukebox CONTAINER              # Play music randomly from the targ...
+  cifrado list [CONTAINER]               # List containers and objects
+  cifrado post CONTAINER [DESCRIPTION]   # Create a container
+  cifrado set-acl CONTAINER --acl=ACL    # Set an ACL on containers and objects
+  cifrado setup                          # Initial Cifrado configuration
+  cifrado stat [CONTAINER] [OBJECT]      # Displays information for the acco...
+  cifrado upload CONTAINER FILE          # Upload a file
+
+Options:
+  [--username=USERNAME]  
+  [--quiet=QUIET]        
+  [--password=PASSWORD]  
+  [--auth-url=AUTH_URL]  
+  [--tenant=TENANT]      
+  [--config=CONFIG]      
+  [--region=REGION]      
+  [--insecure]           # Insecure SSL connections
+</code></pre>
 
 <h2>Installation</h2>
 
-<p>Install it yourself as:</p>
+<h3>Installing the Ubuntu packages (recommended)</h3>
 
-<pre><code>$ gem install cifrado
+<p>Open a terminal and type:</p>
+
+<pre><code>sudo add-apt-repository ppa:rubiojr/cifrado
+sudo apt-get update
+sudo apt-get install cifrado
 </code></pre>
 
-<p>Nees the GPG binary installed to use encryption.</p>
+<p>You'll also need GnuPG and MPlayer installed if you want to have
+music streaming and encryption support enabled in Cifrado
+(GnuPG and the agent is pre-installed in a regular Ubuntu 
+installation):</p>
+
+<pre><code>sudo apt-get install mplayer gnupg gnupg-agent
+</code></pre>
+
+<h3>Installing via rubygems</h3>
+
+<p>Needs rubygems and ruby available in your system.</p>
+
+<p>Ubuntu installation:</p>
+
+<pre><code>sudo apt-get install ruby rubygems
+</code></pre>
+
+<p>Install the gem:</p>
+
+<pre><code>sudo gem install cifrado
+</code></pre>
 
 <h2>Usage</h2>
 
-<p>It has built-in help:</p>
+<h3>Seting up Cifrado for the first time</h3>
 
-<pre><code>cifrado help
+<p>Use 'cifrado setup' to configure Cifrado for the first time.</p>
+
+<p>Note that it's not strictly required to save the options or running the
+setup process. If you do so, you'll not be asked for the username,
+password, auth_url and other parameters required to run Cifrado.</p>
+
+<p>The setup command will ask you the OpenStack Swift connection
+information:</p>
+
+<pre><code>$ cifrado setup
+Running cifrado setup...
+Please provide OpenStack/Rackspace credentials.
+
+Cifrado can save this settings in /home/rubiojr/.config/cifrado/cifradorc
+for later use.
+The settings (password included) are saved unencrypted.
+
+Username: user
+Tenant: my_tenant
+Password: 
+Auth URL: https://identity.example.net/v2.0/tokens
+Do you want to save these settings? (y/n)  
 </code></pre>
 
-<p>or </p>
+<h3>Uploading/Downloading files with Cifrado</h3>
 
-<pre><code>cifrado help &lt;command&gt;
+<h4>Uploading files</h4>
+
+<p>Uploading a single file, LICENSE.txt, to container 'test':</p>
+
+<pre><code>$ cifrado upload test LICENSE.txt
+
+Uploading LICENSE.txt (1.04 KB)
+[0.00 Mb/s] Progress: |=====================| 100% [Time: 00:00:02 ]
 </code></pre>
 
-<h3>Encrypted, symmetric uploads</h3>
+<p>Uploading a directory (recursively) to container 'test':</p>
+
+<pre><code>$ cifrado upload test tmp
+
+Uploading tmp/LICENSE.txt (1.04 KB)
+ [0.00 Mb/s] Progress: |=====================| 100% [Time: 00:00:02 ]
+Uploading tmp/cifrado.gemspec (1.14 KB)
+ [0.00 Mb/s] Progress: |=====================| 100% [Time: 00:00:02 ]
+</code></pre>
+
+<p>Limiting upload speed with --bwlimit:</p>
+
+<pre><code>$ cifrado upload --bwlimit 0.10 test pkg/cifrado-0.1.gem
+
+Uploading pkg/cifrado-0.1.gem (163.00 KB)
+ [0.09 Mb/s] Progress: |=====================| 100% [Time: 00:00:14 ]
+</code></pre>
+
+<p>The bwlimit data rate unit is Mb/s. The same --bwlimit option can
+be used when downloading files.</p>
+
+<p>Uploading big files using segments:</p>
+
+<pre><code>$ cifrado upload --segments 3 test pkg/cifrado-0.1.gem 
+Segmenting file, 3 segments...
+Uploading cifrado-0.1.gem segments
+Uploading segment 1/3 (56.00 KB)
+ [0.00 Mb/s] Segment [1/3]: |================| 100% [Time: 00:00:02 ]
+Uploading segment 2/3 (56.00 KB)
+ [0.00 Mb/s] Segment [2/3]: |================| 100% [Time: 00:00:02 ]
+Uploading segment 3/3 (51.00 KB)
+ [0.00 Mb/s] Segment [3/3]: |================| 100% [Time: 00:00:03 ]
+</code></pre>
+
+<p>Note that segments are automatically reassembled by Swift when you
+download the object. That is, to download cifrado-0.1.gem from the
+test container, download it like any other regular object.</p>
+
+<h4>Downloading files</h4>
+
+<h4>Encryption support</h4>
+
+<p><strong>Symmetric Encryption</strong></p>
 
 <pre><code>cifrado upload --insecure \
                --encrypt symmetric \
@@ -69,7 +207,7 @@
                my-container audio.mp3
 </code></pre>
 
-<h3>Encrypted, asymmetric uploads</h3>
+<p><strong>Asymmetric Encryption ('Traditional' GPG encryption)</strong></p>
 
 <pre><code>cifrado upload --insecure \
                --encrypt a:rubiojr@frameos.org \
@@ -83,7 +221,34 @@
                my-container audio.mp3
 </code></pre>
 
-<h2>Contributing</h2>
+<h4>Streaming the music available in a container</h4>
+
+<p>Needs mplayer installed:</p>
+
+<pre><code>sudo apt-get install mplayer
+</code></pre>
+
+<p>Play the files available in the 'music' container:</p>
+
+<pre><code>$ cifrado jukebox music
+
+Cifrado Jukebox
+---------------
+
+Ctrl-C once   -&gt; next song
+Ctrl-C twice  -&gt; quit
+
+Playing song
+  * spotify/Los Lobos/La Bamba.ogg
+</code></pre>
+
+<h2>Known issues</h2>
+
+<ul>
+<li>Foo</li>
+<li>Bar</li>
+<li>A lot of them</li>
+</ul><h2>Contributing</h2>
 
 <ol>
 <li>Fork it</li>
@@ -93,8 +258,11 @@
 <li>Create new Pull Request</li>
 </ol>
       </section>
+      <footer>
+        <p><small>Hosted on <a href="https://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
+      </footer>
     </div>
-
-    
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+		
   </body>
 </html>
