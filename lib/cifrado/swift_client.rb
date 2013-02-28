@@ -124,11 +124,7 @@ module Cifrado
       end
 
       Log.debug "Upload response #{res.class}"
-      # Wrap Net::HTTPResponse in a Excon::Response Object
-      r = Excon::Response.new :body => res.body,
-                              :headers => res.to_hash,
-                              :status => res.code.to_i
-      r
+      res
     end
 
     def user_agent
