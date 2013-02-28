@@ -10,8 +10,6 @@ Shindo.tests('Cifrado | CLI#upload') do
     :no_progressbar => true
   }
   cli_options.merge!(cfg[:cli_options]) if cfg
-  require 'pp'
-  pp cli_options
 
   tests '#upload' do
     test 'segmented uploads' do
