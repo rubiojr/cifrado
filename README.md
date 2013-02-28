@@ -17,6 +17,7 @@ OpenStack Swift CLI with built in (GPG) encryption.
 * Music streaming (streams the mp3/ogg files available in a container
   and plays them using mplayer if available).
 * Regular list/delete/stat commands.
+* Ruby 1.8.7, 1.9.X and 2.0 compatibility
 
 Cifrado has a built-in help command:
 
