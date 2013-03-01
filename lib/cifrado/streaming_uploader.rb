@@ -27,7 +27,8 @@ module Cifrado
         file = params[:file]
         headers = params[:headers] || {}
         chunker = nil
-        rate_limit = Cifrado::RateLimit.new(params[:bwlimit])
+        rate_limit = nil
+        rate_limit = Cifrado::RateLimit.new(params[:bwlimit]) if params[:bwlimit]
 
         if file
           headers.merge!({ 'Content-Length' => File.size(file.path).to_s })
@@ -35,7 +36,7 @@ module Cifrado
           chunker = lambda do
             chunk = file.read(4096).to_s
 
-            rate_limit.upload(chunk.size) if rate_limit
+            rate_limit.limit(chunk.size) if rate_limit
 
             if block_given? and chunk.size > 0
               yield chunk.size

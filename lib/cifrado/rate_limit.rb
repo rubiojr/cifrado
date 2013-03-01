@@ -8,7 +8,7 @@ module Cifrado
       @bwlimit = bwlimit
     end
 
-    def upload(read)
+    def limit(read)
       bps = @read/(Time.now.to_f - @time)
       if bps > @bwlimit
         Log.debug 'limiting rate'
