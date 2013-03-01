@@ -16,6 +16,7 @@ module Cifrado
 
   require 'net/http'
   require 'net/https'
+  require 'cifrado/rate_limit'
 
   class StreamingUploader
 
@@ -24,31 +25,30 @@ module Cifrado
       def put(to_url, params = {})
         
         file = params[:file]
+        headers = params[:headers] || {}
+        chunker = nil
+        rate_limit = Cifrado::RateLimit.new(params[:bwlimit])
+
         if file
-          headers = { 'Content-Length' => File.size(file.path).to_s }
+          headers.merge!({ 'Content-Length' => File.size(file.path).to_s })
 
           chunker = lambda do
-            chunk = file.read(Excon.defaults[:chunk_size]).to_s
+            chunk = file.read(4096).to_s
+
+            rate_limit.upload(chunk.size) if rate_limit
+
             if block_given? and chunk.size > 0
               yield chunk.size
             end
             chunk
           end
-
-          headers = headers.merge(params[:headers]) if params[:headers]
-          Excon.put to_url,
-                    :headers => headers, 
-                    :request_block => chunker
-        else
-          headers ={}
-          headers.merge(params[:headers]) if params[:headers]
-          Excon.put to_url,
-                    :headers => headers
         end
 
-
+        Excon.put to_url,
+                  :headers => headers, 
+                  :request_block => chunker
       end
-      
+
     end
   end
 
