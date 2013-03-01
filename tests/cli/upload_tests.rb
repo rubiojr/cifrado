@@ -12,7 +12,7 @@ Shindo.tests('Cifrado | CLI#upload') do
   cli_options.merge!(cfg[:cli_options]) if cfg
 
   tests '#upload' do
-    test 'segmented uploads' do
+    tests 'segmented uploads' do
       obj = create_bin_payload 1*1024
       cli = Cifrado::CLI.new
       cli.options = {
@@ -28,14 +28,23 @@ Shindo.tests('Cifrado | CLI#upload') do
       test "segment matches /segments/..." do
         !segments.last.match(/segments\/\d+.\d{2}\/\d+\/00000003$/).nil?
       end
+      test 'uploaded segments not uploaded twice' do
+        segments = cli.upload 'cifrado-tests', obj
+        segments.size == 0
+      end
     end
-    test 'single uploads' do
+    tests 'single uploads' do
       obj = create_bin_payload 1
       cli = Cifrado::CLI.new
       cli.options = cli_options
       cli.upload 'cifrado-tests', obj
-      #Digest::MD5.file(obj) == cli.stat('cifrado-tests', obj)['ETag']
-      cli.stat('cifrado-tests', obj).is_a?(Hash)
+      test 'upload ok' do
+        cli.stat('cifrado-tests', obj).is_a?(Hash)
+      end
+      test 'do not uploaded twice' do
+        segments = cli.upload 'cifrado-tests', obj
+        segments.size == 0
+      end
     end
 
     tests 'encrypted uploads' do

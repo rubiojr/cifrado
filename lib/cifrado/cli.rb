@@ -218,6 +218,15 @@ module Cifrado
           headers = {}
         end
 
+        case client.match(segment, container + "_segments", obj_path)
+        when 1
+          Log.warn 'Segment already uploaded, skipping.'
+          File.delete segment
+          next
+        when 2
+          Log.warn 'Segment already uploaded but looks different. Updating.'
+        end
+
         pb = Progressbar.new options[:segments],
                              n,
                              :style => options[:progressbar]
@@ -233,6 +242,17 @@ module Cifrado
         segments_uploaded << obj_path
       end
       
+      if options[:encrypt]
+        Log.debug "Deleting temporal encrypted file #{out}"
+        File.delete out 
+      end
+      
+      if segments_uploaded.size == 0
+        Log.warn 'All the segments have been previously uploaded.'
+        Log.warn 'Skipping manifest creation.'
+        return segments_uploaded
+      end
+
       # We need this for segmented uploads
       Log.debug "Adding manifest path #{target_manifest}"
       xom = "#{Fog::OpenStack.escape(container + '_segments')}/" +
@@ -248,11 +268,6 @@ module Cifrado
                                          headers  
       segments_uploaded.insert 0, target_manifest
 
-      # Delete temporal encrypted file created by GPG
-      if options[:encrypt]
-        Log.debug "Deleting temporal encrypted file #{out}"
-        File.delete out 
-      end
       segments_uploaded
     end
 
