@@ -8,7 +8,8 @@ OpenStack Swift CLI with built in (GPG) encryption.
 
 ## Features available in Cifrado 0.1
 
-* Uploading/downloading files and directories to OpenStack Swift.
+* Uploading/downloading files and directories to/from OpenStack Swift.
+* Regular list/delete/stat commands to manipulate objects and containers.
 * Asymmetric/Symmetric transparent encryption/decryption of files
   when uploading/downloading using GnuPG.
 * Segmented uploads (splitting the file in multiple segments).
@@ -17,9 +18,8 @@ OpenStack Swift CLI with built in (GPG) encryption.
   file encryption at the moment.
 * Different progressbar styles. CLI does not have to be boring :).
 * Bandwidth limits when uploading/downloading stuff.
-* Music streaming (streams mp3/ogg files available in a container).
-  and plays them using mplayer if available).
-* Regular list/delete/stat commands.
+* Music streaming (streams mp3/ogg files available in a container)
+  and plays them using mplayer/vlc/totem if available.
 * Video streaming (streams video files available in a container).
 * Bootstrap a Swift All-In-One server in a cloud provider
   (DigitalOcean is the only one supported ATM).
@@ -29,16 +29,17 @@ Cifrado has a built-in help command:
 
 ```
 Tasks:
-  cifrado cinema CONTAINER VIDEO              # Stream videos from the targe...
-  cifrado delete CONTAINER [OBJECT]           # Delete specific container or...
+  cifrado cinema CONTAINER VIDEO              # Stream videos from the target container
+  cifrado delete CONTAINER [OBJECT]           # Delete specific container or object
   cifrado download [CONTAINER] [OBJECT]       # Download container, objects
-  cifrado help [TASK]                         # Describe available tasks or ...
-  cifrado jukebox CONTAINER                   # Play music randomly from the...
+  cifrado help [TASK]                         # Describe available tasks or one specifi...
+  cifrado jukebox CONTAINER                   # Play music randomly from the target con...
   cifrado list [CONTAINER]                    # List containers and objects
   cifrado post CONTAINER [DESCRIPTION]        # Create a container
-  cifrado set-acl CONTAINER --acl=ACL         # Set an ACL on containers and...
+  cifrado saio SUBCOMMAND ...ARGS             # Bootstrap a Swift installation
+  cifrado set-acl CONTAINER --acl=ACL         # Set an ACL on containers and objects
   cifrado setup                               # Initial Cifrado configuration
-  cifrado stat [CONTAINER] [OBJECT]           # Displays information for the...
+  cifrado stat [CONTAINER] [OBJECT]           # Displays information for the account, c...
   cifrado upload CONTAINER FILE1 [FILE2] ...  # Upload files or directories
 
 Options:
@@ -50,13 +51,17 @@ Options:
   [--config=CONFIG]      
   [--region=REGION]      
   [--insecure]           # Insecure SSL connections
+  [--debug]              
 ```
 
 ## Installation
 
 ### Installing the Ubuntu packages (recommended)
 
-Open a terminal and type:
+Ubuntu packages are available in Cifrado's PPA for Ubuntu
+Precise (12.04), Quantal (12.10) and Raring Ringtail (13.04).
+
+To add the PPA and install the packages, open a terminal and type:
 
 ```
 sudo add-apt-repository ppa:rubiojr/cifrado
@@ -83,17 +88,18 @@ Install the gem:
 
     sudo gem install cifrado
 
-## Usage
+## Basic usage
 
-### Seting up Cifrado for the first time
+### Setting up Cifrado for the first time
 
-Use 'cifrado setup' to configure Cifrado for the first time.
+If you already have a Swift installation running,
+you can use 'cifrado setup' to configure Cifrado for the first time.
 
 Note that it's not strictly required to save the options or running the
 setup process. If you do so, you'll not be asked for the username,
 password, auth_url and other parameters required to run Cifrado.
 
-The setup command will ask you the OpenStack Swift connection
+The setup command will ask you the OpenStack Swift authentication 
 information:
 
     $ cifrado setup
@@ -110,7 +116,9 @@ information:
     Auth URL: https://identity.example.net/v2.0/tokens
     Do you want to save these settings? (y/n)  
 
-
+There's an alternative way to setup cifrado and provision a Swift All-In-One
+server for testing and/or personal use. Head over to the Wiki for more
+details.
 
 ### Uploading/Downloading files with Cifrado
 
@@ -216,6 +224,13 @@ Ctrl-C twice  -> quit
 Playing song
   * spotify/Los Lobos/La Bamba.ogg
 ```
+
+## Advanced usage
+
+There's some extra documentation available in the project's wiki.
+
+Head over to https://github.com/rubiojr/cifrado/wiki to learn about
+Cifrado.
 
 ## Known issues
 
