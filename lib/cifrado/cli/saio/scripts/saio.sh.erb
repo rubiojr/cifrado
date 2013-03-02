@@ -431,12 +431,12 @@ cp /etc/ssl/certs/ssl-cert-snakeoil.pem /etc/stud/cert.pem
 cat /etc/ssl/private/ssl-cert-snakeoil.key >> /etc/stud/cert.pem
 openssl dhparam -rand - 1024 >> /etc/stud/cert.pem
 cat > /etc/stud/keystone.conf << EOF
-OPTIONS="-s -f $IPADDR,5000 -b 127.0.0.1,5000 -c ECDHE-RSA-RC4-SHA:RC4-SHA --ssl -n 1 "
+OPTIONS="-s -f $IPADDR,5000 -b 127.0.0.1,5000 --ssl -n 1 "
 CERT="/etc/stud/cert.pem"
 EOF
 
 cat > /etc/stud/swift.conf << EOF
-OPTIONS="-s -f $IPADDR,443 -b 127.0.0.1,8080 -c ECDHE-RSA-RC4-SHA:RC4-SHA --ssl -n 1 "
+OPTIONS="-s -f $IPADDR,443 -b 127.0.0.1,8080 --ssl -n 1 "
 CERT="/etc/stud/cert.pem"
 EOF
 
