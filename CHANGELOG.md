@@ -18,28 +18,25 @@
 
 ```
 SLOC  Directory SLOC-by-Language (Sorted)
-1527    lib             ruby=1527
-911     tests           ruby=911
+1978    lib             ruby=1663,sh=315
+918     tests           ruby=918
+5       bin             ruby=5
 
 
 Totals grouped by language (dominant language first):
-ruby:          2438 (100.00%)
+ruby:          2586 (89.14%)
+sh:             315 (10.86%)
 
 
 
 
-Total Physical Source Lines of Code (SLOC)                = 2,438
-Development Effort Estimate, Person-Years (Person-Months) = 0.51 (6.12)
+Total Physical Source Lines of Code (SLOC)                = 2,901
+Development Effort Estimate, Person-Years (Person-Months) = 0.61 (7.34)
  (Basic COCOMO model, Person-Months = 2.4 * (KSLOC**1.05))
-Schedule Estimate, Years (Months)                         = 0.41 (4.98)
+Schedule Estimate, Years (Months)                         = 0.44 (5.33)
  (Basic COCOMO model, Months = 2.5 * (person-months**0.38))
-Estimated Average Number of Developers (Effort/Schedule)  = 1.23
-Total Estimated Cost to Develop                           = $ 68,870
+Estimated Average Number of Developers (Effort/Schedule)  = 1.38
+Total Estimated Cost to Develop                           = $ 82,664
  (average salary = $56,286/year, overhead = 2.40).
 SLOCCount, Copyright (C) 2001-2004 David A. Wheeler
-SLOCCount is Open Source Software/Free Software, licensed under the GNU GPL.
-SLOCCount comes with ABSOLUTELY NO WARRANTY, and you are welcome to
-redistribute it under certain conditions as specified by the GNU GPL license;
-see the documentation for details.
-
 ```
