@@ -21,6 +21,12 @@ def client
                             :connection_options => { :ssl_verify_peer => false }
 end
 
+def create_tmpdir
+  dir = "/tmp/cifrado-#{SecureRandom.hex}"
+  Dir.mkdir dir
+  dir
+end
+
 def test_container
   client.service.directories.create :key => test_container_name
 end
@@ -35,6 +41,14 @@ end
 
 def test_container_segments
   client.service.directories.create :key => test_container_segments_name
+end
+
+def populate_tmpdir
+  tmpdir = create_tmpdir
+  create_bin_payload 100, "#{tmpdir}/#{SecureRandom.hex}"
+  create_bin_payload 100, "#{tmpdir}/#{SecureRandom.hex}"
+  create_bin_payload 100, "#{tmpdir}/#{SecureRandom.hex}"
+  tmpdir
 end
 
 # Size in KB
