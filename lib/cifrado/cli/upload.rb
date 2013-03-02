@@ -31,21 +31,19 @@ module Cifrado
         help 'upload'
         raise "No files specified"
       end
+      
+      client = client_instance 
 
       uploaded = []
       args.each do |file|
         unless file and File.exist?(file)
           raise "File '#{file}' does not exist"
         end
-
-        client = client_instance 
-
-        tstart = Time.now
-        files = []
+        
         if File.directory?(file)
           files = Dir["#{file}/**/*"].reject { |f| File.directory?(f) }
         else
-          files << file
+          files = [file]
         end
 
         files.each do |f|
