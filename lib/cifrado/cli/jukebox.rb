@@ -6,8 +6,6 @@ module Cifrado
     option :match, :type => :string
     def jukebox(container)
       client = client_instance
-      token = client.service.credentials[:token]
-      mgmt_url = client.service.credentials[:server_management_url]
       
       dir = client.service.directories.get container
       unless dir
@@ -25,7 +23,6 @@ module Cifrado
       Log.info
       $stderr.reopen('/dev/null', 'w')
       pipe = IO.popen(player_command, 'w')
-      count = songs.size
       songs.shuffle.each do |song|
         if options[:match] and song.key !~ /#{options[:match]}/i
           next

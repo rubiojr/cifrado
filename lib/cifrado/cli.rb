@@ -283,6 +283,7 @@ require 'cifrado/cli/setup'
 require 'cifrado/cli/upload'
 require 'cifrado/cli/set_acl'
 require 'cifrado/cli/jukebox'
+require 'cifrado/cli/cinema'
 
 at_exit do
   include Cifrado::Utils

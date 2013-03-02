@@ -12,28 +12,32 @@ OpenStack Swift CLI with built in (GPG) encryption.
 * Asymmetric/Symmetric transparent encryption/decryption of files
   when uploading/downloading using GnuPG.
 * Segmented uploads (splitting the file in multiple segments).
-* Progressbar!
+* Resume (unencrypted) segmented uploads. Segments already uploaded
+  are not uploaded again. This feature does not work when using
+  file encryption at the moment.
+* Different progressbar styles. CLI does not have to be boring :).
 * Bandwidth limits when uploading/downloading stuff.
-* Music streaming (streams the mp3/ogg files available in a container
+* Music streaming (streams mp3/ogg files available in a container).
   and plays them using mplayer if available).
 * Regular list/delete/stat commands.
-* Ruby 1.8.7, 1.9.X and 2.0 compatibility
+* Video streaming (streams video files available in a container).
+* Ruby 1.8.7, 1.9.X and 2.0 compatibility.
 
 Cifrado has a built-in help command:
 
 ```
-[9648][rubiojr.blueleaf] cifrado help
 Tasks:
-  cifrado delete CONTAINER [OBJECT]      # Delete specific container or object
-  cifrado download [CONTAINER] [OBJECT]  # Download container, objects
-  cifrado help [TASK]                    # Describe available tasks or one s...
-  cifrado jukebox CONTAINER              # Play music randomly from the targ...
-  cifrado list [CONTAINER]               # List containers and objects
-  cifrado post CONTAINER [DESCRIPTION]   # Create a container
-  cifrado set-acl CONTAINER --acl=ACL    # Set an ACL on containers and objects
-  cifrado setup                          # Initial Cifrado configuration
-  cifrado stat [CONTAINER] [OBJECT]      # Displays information for the acco...
-  cifrado upload CONTAINER FILE          # Upload a file
+  cifrado cinema CONTAINER VIDEO              # Stream videos from the targe...
+  cifrado delete CONTAINER [OBJECT]           # Delete specific container or...
+  cifrado download [CONTAINER] [OBJECT]       # Download container, objects
+  cifrado help [TASK]                         # Describe available tasks or ...
+  cifrado jukebox CONTAINER                   # Play music randomly from the...
+  cifrado list [CONTAINER]                    # List containers and objects
+  cifrado post CONTAINER [DESCRIPTION]        # Create a container
+  cifrado set-acl CONTAINER --acl=ACL         # Set an ACL on containers and...
+  cifrado setup                               # Initial Cifrado configuration
+  cifrado stat [CONTAINER] [OBJECT]           # Displays information for the...
+  cifrado upload CONTAINER FILE1 [FILE2] ...  # Upload files or directories
 
 Options:
   [--username=USERNAME]  
