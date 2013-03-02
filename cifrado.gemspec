@@ -25,6 +25,7 @@ Gem::Specification.new do |gem|
   gem.add_dependency 'mime-types'
   gem.add_dependency 'yajl-ruby'
   gem.add_dependency 'formatador'
+  gem.add_dependency 'shexy'
   
   gem.add_development_dependency 'shindo'
 end
