@@ -25,6 +25,9 @@ module Fog
       when :clodo
         require 'fog/clodo/compute'
         Fog::Compute::Clodo.new(attributes)
+      when :digitalocean
+        require 'fog/digitalocean/compute'
+        Fog::Compute::DigitalOcean.new(attributes)
       when :ecloud
         require 'fog/ecloud/compute'
         Fog::Compute::Ecloud.new(attributes)
