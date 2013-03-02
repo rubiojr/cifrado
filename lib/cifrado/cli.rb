@@ -16,6 +16,7 @@ module Cifrado
     class_option :config
     class_option :region
     class_option :insecure, :type => :boolean, :desc => "Insecure SSL connections"
+    class_option :debug,    :type => :boolean
 
     private
     def secure_password
@@ -30,6 +31,10 @@ module Cifrado
 
       if options[:quiet] and Log.level < Logger::WARN
         Log.level = Logger::WARN
+      end
+
+      if options[:debug]
+        Log.level = Logger::DEBUG
       end
 
       config = check_options
@@ -102,6 +107,7 @@ require 'cifrado/cli/upload'
 require 'cifrado/cli/set_acl'
 require 'cifrado/cli/jukebox'
 require 'cifrado/cli/cinema'
+require 'cifrado/cli/saio'
 
 at_exit do
   include Cifrado::Utils
