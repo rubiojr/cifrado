@@ -7,7 +7,7 @@ module Fog
           request(
             :expects  => [200],
             :method   => 'GET',
-            :path     => 'ssh_keys',
+            :path     => 'ssh_keys'
           )
         end
 
