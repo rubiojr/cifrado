@@ -8,6 +8,7 @@ module Cifrado
     option :bwlimit, :type => :numeric
     def download(container, object = nil)
       client = client_instance
+      downloaded = []
       files = []
       if object
         files << object
@@ -17,11 +18,11 @@ module Cifrado
         files = dir.files if dir
       end
       pb = Progressbar.new 1, 1, :style => options[:progressbar]
-      found = nil
       files.each do |f|
         obj = f.is_a?(String) ? f : f.key
         if !f.is_a?(String) and f.metadata[:encrypted_name]
-          fname = decrypt_filename f.metadata[:encrypted_name], @config[:password]
+          fname = decrypt_filename f.metadata[:encrypted_name],
+                                   @config[:password] + @config[:secure_random]
           Log.info "Downloading file #{fname}"
         else
           Log.info "Downloading file #{obj}"
@@ -33,7 +34,7 @@ module Cifrado
                               :output => options[:output],
                               :progress_callback => pb.block,
                               :bwlimit => bwlimit
-          found = true 
+          downloaded << obj
         else 
           Log.debug 'Trying to find hashed object name'
           file_hash = (Digest::SHA2.new << obj).to_s
@@ -43,13 +44,11 @@ module Cifrado
                               :output => options[:output],
                               :progress_callback => pb.block,
                               :bwlimit => bwlimit
-          found = true if r.status == 200
+          downloaded << file_hash if r.status == 200
         end
       end
-      unless found
-        raise "File #{object} not found in #{container}"
-      end
-      found
+      Log.warn "No files were downloaded." if downloaded.empty?
+      downloaded
     end
   end
 end

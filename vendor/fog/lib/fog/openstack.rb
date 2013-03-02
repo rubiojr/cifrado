@@ -127,7 +127,7 @@ module Fog
           endpoint['type']
         }.sort.join ', '
 
-        missing = service_type.join ', '
+        missing = service_type
 
         message = "Could not find service #{missing}.  Have #{available}"
 

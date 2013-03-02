@@ -2,20 +2,22 @@ include Cifrado::Utils
 
 Shindo.tests('Cifrado | CLI#upload') do
 
+  cfg = YAML.load_file(
+    File.join(ENV['HOME'], '.config/cifrado/cifradorc')
+  ) rescue nil
   cli_options = {
     :insecure => true,
     :no_progressbar => true
   }
+  cli_options.merge!(cfg[:cli_options]) if cfg
 
   tests '#upload' do
-    test 'segmented uploads' do
+    tests 'segmented uploads' do
       obj = create_bin_payload 1*1024
       cli = Cifrado::CLI.new
       cli.options = {
-        :insecure => true,
-        :segments => 3,
-        :no_progressbar => true
-      }
+        :segments => 3
+      }.merge cli_options
       segments = cli.upload 'cifrado-tests', obj
       test "#{test_container.key} is a Hash" do
         cli.stat('cifrado-tests', obj).is_a?(Hash) 
@@ -26,27 +28,31 @@ Shindo.tests('Cifrado | CLI#upload') do
       test "segment matches /segments/..." do
         !segments.last.match(/segments\/\d+.\d{2}\/\d+\/00000003$/).nil?
       end
+      test 'uploaded segments not uploaded twice' do
+        segments = cli.upload 'cifrado-tests', obj
+        segments.size == 0
+      end
     end
-    test 'single uploads' do
+    tests 'single uploads' do
       obj = create_bin_payload 1
       cli = Cifrado::CLI.new
-      cli.options = {
-        :insecure => true,
-        :no_progressbar => true
-      }
+      cli.options = cli_options
       cli.upload 'cifrado-tests', obj
-      #Digest::MD5.file(obj) == cli.stat('cifrado-tests', obj)['ETag']
-      cli.stat('cifrado-tests', obj).is_a?(Hash)
+      test 'upload ok' do
+        cli.stat('cifrado-tests', obj).is_a?(Hash)
+      end
+      test 'do not uploaded twice' do
+        segments = cli.upload 'cifrado-tests', obj
+        segments.size == 0
+      end
     end
 
     tests 'encrypted uploads' do
       obj = create_bin_payload 1
       cli = Cifrado::CLI.new
       cli.options = {
-        :insecure => true,
-        :encrypt  => 'a:rubiojr',
-        :no_progressbar => true
-      }
+        :encrypt  => 'a:rubiojr'
+      }.merge cli_options
       obj_path = (cli.upload 'cifrado-tests', obj).first
       test 'stat' do 
         cli.stat('cifrado-tests', obj_path).is_a?(Hash)
@@ -77,11 +83,9 @@ Shindo.tests('Cifrado | CLI#upload') do
       obj = create_bin_payload 1*1024
       cli = Cifrado::CLI.new
       cli.options = {
-        :insecure => true,
         :segments => 3,
-        :encrypt  => 'a:rubiojr',
-        :no_progressbar => true
-      }
+        :encrypt  => 'a:rubiojr'
+      }.merge cli_options
       segments = cli.upload 'cifrado-tests', obj
       test 'stat' do
         cli.stat('cifrado-tests', segments.first).is_a?(Hash) 
@@ -128,11 +132,9 @@ Shindo.tests('Cifrado | CLI#upload') do
       obj = create_bin_payload 1*1024
       cli = Cifrado::CLI.new
       cli.options = {
-        :insecure => true,
         :segments => 3,
-        :encrypt  => 's:foobar',
-        :no_progressbar => true
-      }
+        :encrypt  => 's:foobar'
+      }.merge cli_options
       segments = cli.upload 'cifrado-tests', obj
       test "HEAD manifest returns a Hash" do
         cli.stat(test_container.key, segments.first).is_a?(Hash) 
@@ -155,10 +157,8 @@ Shindo.tests('Cifrado | CLI#upload') do
       obj = create_bin_payload 1
       cli = Cifrado::CLI.new
       cli.options = {
-        :insecure => true,
         :encrypt  => 's:foobar',
-        :no_progressbar => true
-      }
+      }.merge cli_options
       obj_path = (cli.upload 'cifrado-tests', obj).first
       !cli.stat('cifrado-tests', obj_path)['X-Object-Meta-Encrypted-Name'].nil?
     end

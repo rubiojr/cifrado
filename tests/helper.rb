@@ -12,12 +12,19 @@ unless ENV['DEBUG']
 end
 
 def client
-  conf = YAML.load_file File.expand_path("~/.cifradorc")
+  conf = YAML.load_file File.expand_path("~/.config/cifrado/cifradorc")
   client = SwiftClient.new  :username => conf[:username],
                             :api_key  => conf[:password],
                             :auth_url => conf[:auth_url],
+                            :region   => conf[:region],
                             :password_salt => conf[:secure_random],
                             :connection_options => { :ssl_verify_peer => false }
+end
+
+def create_tmpdir
+  dir = "/tmp/cifrado-#{SecureRandom.hex}"
+  Dir.mkdir dir
+  dir
 end
 
 def test_container
@@ -34,6 +41,14 @@ end
 
 def test_container_segments
   client.service.directories.create :key => test_container_segments_name
+end
+
+def populate_tmpdir
+  tmpdir = create_tmpdir
+  create_bin_payload 100, "#{tmpdir}/#{SecureRandom.hex}"
+  create_bin_payload 100, "#{tmpdir}/#{SecureRandom.hex}"
+  create_bin_payload 100, "#{tmpdir}/#{SecureRandom.hex}"
+  tmpdir
 end
 
 # Size in KB

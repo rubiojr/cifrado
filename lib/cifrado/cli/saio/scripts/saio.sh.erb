@@ -1,0 +1,445 @@
+#!/bin/bash
+set -e
+
+#
+# SETUP VARIABLES
+# 
+# In GB
+SWIFT_DISK_SIZE=15
+# keystone variables
+PASSWORD=<%= password %>
+KROLE=admin
+# user password
+ADMIN_USER=admin
+
+# Capture ID when creating stuff
+function get_id () {
+    echo `"$@" | awk '/ id / { print $4 }'`
+}
+
+echo deb http://ubuntu-cloud.archive.canonical.com/ubuntu precise-updates/folsom main > /etc/apt/sources.list.d/folsom.list
+apt-get update
+apt-get install -y ubuntu-cloud-keyring
+apt-get update
+apt-get install -y keystone python-software-properties telnet xfsprogs pwgen ssl-cert curl wget ca-certificates tcpflow
+add-apt-repository -y ppa:bvox/ppa
+apt-get update
+apt-get install -y swift swift-account swift-object swift-container swift-proxy pwgen ssl-cert curl wget ca-certificates rsync memcached python-keystone stud
+
+
+export SERVICE_ENDPOINT=http://127.0.0.1:35357/v2.0
+export SERVICE_TOKEN=$(pwgen -s 18 1)
+
+
+cat > /etc/keystone/keystone.conf << EOF
+[DEFAULT]
+admin_token = $SERVICE_TOKEN
+bind_host = 127.0.0.1
+log_file = keystone.log
+log_dir = /var/log/keystone
+# Use syslog for logging.
+use_syslog = True
+log_config = /etc/keystone/logging.conf
+
+[sql]
+connection = sqlite:////var/lib/keystone/keystone.db
+
+[identity]
+driver = keystone.identity.backends.sql.Identity
+
+[catalog]
+driver = keystone.catalog.backends.sql.Catalog
+
+[token]
+driver = keystone.token.backends.sql.Token
+
+[policy]
+driver = keystone.policy.backends.rules.Policy
+
+[ec2]
+driver = keystone.contrib.ec2.backends.sql.Ec2
+
+[ssl]
+
+[signing]
+
+[ldap]
+
+[filter:debug]
+paste.filter_factory = keystone.common.wsgi:Debug.factory
+
+[filter:token_auth]
+paste.filter_factory = keystone.middleware:TokenAuthMiddleware.factory
+
+[filter:admin_token_auth]
+paste.filter_factory = keystone.middleware:AdminTokenAuthMiddleware.factory
+
+[filter:xml_body]
+paste.filter_factory = keystone.middleware:XmlBodyMiddleware.factory
+
+[filter:json_body]
+paste.filter_factory = keystone.middleware:JsonBodyMiddleware.factory
+
+[filter:user_crud_extension]
+paste.filter_factory = keystone.contrib.user_crud:CrudExtension.factory
+
+[filter:crud_extension]
+paste.filter_factory = keystone.contrib.admin_crud:CrudExtension.factory
+
+[filter:ec2_extension]
+paste.filter_factory = keystone.contrib.ec2:Ec2Extension.factory
+
+[filter:s3_extension]
+paste.filter_factory = keystone.contrib.s3:S3Extension.factory
+
+[filter:url_normalize]
+paste.filter_factory = keystone.middleware:NormalizingFilter.factory
+
+[filter:stats_monitoring]
+paste.filter_factory = keystone.contrib.stats:StatsMiddleware.factory
+
+[filter:stats_reporting]
+paste.filter_factory = keystone.contrib.stats:StatsExtension.factory
+
+[app:public_service]
+paste.app_factory = keystone.service:public_app_factory
+
+[app:admin_service]
+paste.app_factory = keystone.service:admin_app_factory
+
+[pipeline:public_api]
+pipeline = stats_monitoring url_normalize token_auth admin_token_auth xml_body json_body debug ec2_extension user_crud_extension public_service
+
+[pipeline:admin_api]
+pipeline = stats_monitoring url_normalize token_auth admin_token_auth xml_body json_body debug stats_reporting ec2_extension s3_extension crud_extension admin_service
+
+[app:public_version_service]
+paste.app_factory = keystone.service:public_version_app_factory
+
+[app:admin_version_service]
+paste.app_factory = keystone.service:admin_version_app_factory
+
+[pipeline:public_version_api]
+pipeline = stats_monitoring url_normalize xml_body public_version_service
+
+[pipeline:admin_version_api]
+pipeline = stats_monitoring url_normalize xml_body admin_version_service
+
+[composite:main]
+use = egg:Paste#urlmap
+/v2.0 = public_api
+/ = public_version_api
+
+[composite:admin]
+use = egg:Paste#urlmap
+/v2.0 = admin_api
+/ = admin_version_api
+EOF
+
+service keystone restart
+# Wait for the dust to settle
+sleep 5
+
+#
+# setup keystone user
+#
+IPADDR=$(/sbin/ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
+ADMIN_ROLE=$(get_id keystone role-create --name=admin)
+TENANT=$(get_id keystone tenant-create --name=$ADMIN_USER)
+KUSER=$(get_id keystone user-create --name=$ADMIN_USER \
+                                    --email=none@devnull.lan \
+                                    --pass=$PASSWORD \
+                                    --tenant_id=$TENANT)
+keystone user-role-add --tenant_id=$TENANT --user-id=$KUSER --role-id=$ADMIN_ROLE
+KSERVICE=$(get_id keystone service-create --name=keystone \
+                                          --type=identity \
+                                          --description="OpenStack Identity")
+keystone endpoint-create --region region1 \
+                         --service_id $KSERVICE \
+                         --publicurl "http://$IPADDR:5000/v2.0" \
+                         --adminurl "http://127.0.0.1:35357/v2.0" \
+                         --internalurl "http://127.0.0.1:5000/v2.0"
+
+##
+## Swift service stuff
+##
+# The password here goes to the Swift proxy server
+# configuration
+# [filter:authtoken]
+# paste.filter_factory = keystone.middleware.auth_token:filter_factory
+# signing_dir = /etc/swift
+# auth_host = keystone
+# auth_port = 35357
+# auth_protocol = http
+# auth_uri = http://keystone:5000
+# admin_tenant_name = service
+# admin_user = swift
+# admin_password = secret
+# delay_auth_decision = 1
+PASSWORD=$(pwgen -s 18 1)
+TENANT=$(get_id keystone tenant-create --name=swift)
+ROLE=$(get_id keystone role-create --name=swiftoperator)
+KUSER=$(get_id keystone user-create --name=swift \
+                                    --pass=$PASSWORD \
+                                    --tenant_id=$TENANT)
+keystone user-role-add --tenant_id=$TENANT --user-id=$KUSER --role-id=$ADMIN_ROLE
+KSERVICE=$(get_id keystone service-create --name=swift \
+                                          --type=object-store \
+                                          --description="Swift Object-store Service")
+keystone endpoint-create --region region1 \
+                         --service_id $KSERVICE \
+                         --publicurl "https://$IPADDR/v1/AUTH_\$(tenant_id)s" \
+                         --adminurl "http://127.0.0.1:8080" \
+                         --internalurl 'http://127.0.0.1:8080/v1/AUTH_$(tenant_id)s'
+
+cat > keystone-env.sh << EOF
+export SERVICE_ENDPOINT=http://127.0.0.1:35357/v2.0
+export SERVICE_TOKEN=$SERVICE_TOKEN
+EOF
+
+##
+## SWIFT SETUP
+##
+
+IPADDR=$(/sbin/ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
+SWIFT_HASH=`pwgen -s 18 1`
+mkdir -p /var/cache/swift
+mkdir -p /srv/node/disk1
+truncate -s ${SWIFT_DISK_SIZE}GB /srv/swift-disk
+mkfs.xfs -i size=1024 /srv/swift-disk
+
+cat > /etc/rsyncd.conf << EOF
+pid file = /var/run/rsyncd.pid
+uid = swift
+gid = swift
+syslog facility = local3
+address = 127.0.0.1
+reverse lookup = no
+
+[ account ]
+path            = /srv/node
+read only       = false
+max connections = 25
+lock file =     /var/lock/account.lock
+
+[ container ]
+path            = /srv/node
+read only       = false
+max connections = 25
+lock file =     /var/lock/container.lock
+
+# This file is being maintained by Puppet.
+# DO NOT EDIT
+
+[ object ]
+path            = /srv/node
+read only       = false
+max connections = 25
+lock file =     /var/lock/object.lock
+EOF
+
+cat > /etc/default/rsync << EOF
+RSYNC_ENABLE=true
+RSYNC_NICE=''
+RSYNC_OPTS=''
+EOF
+
+service rsync start
+
+cat > /etc/swift/swift.conf << EOF
+[swift-hash]
+swift_hash_path_suffix = $SWIFT_HASH
+EOF
+
+
+cat > /etc/swift/account-server.conf << EOF
+[DEFAULT]
+devices = /srv/node
+bind_ip = 127.0.0.1
+bind_port = 6002
+mount_check = false
+user = swift
+log_facility = LOG_LOCAL2
+workers = 1
+db_preallocation = on
+
+[pipeline:main]
+pipeline = recon account-server
+
+[app:account-server]
+use = egg:swift#account
+
+[account-replicator]
+concurrency = 1
+
+[account-auditor]
+
+[account-reaper]
+concurrency = 1
+[filter:recon]
+use = egg:swift#recon
+recon_cache_path = /var/cache/swift
+EOF
+
+cat > /etc/swift/object-server.conf << EOF
+[DEFAULT]
+devices = /srv/node
+bind_ip = 127.0.0.1
+bind_port = 6000
+mount_check = false
+user = swift
+log_facility = LOG_LOCAL2
+workers = 1
+
+[pipeline:main]
+pipeline = recon object-server
+
+[app:object-server]
+use = egg:swift#object
+
+[object-replicator]
+concurrency = 1
+
+[object-updater]
+concurrency = 1
+
+[object-auditor]
+[filter:recon]
+use = egg:swift#recon
+recon_cache_path = /var/cache/swift
+EOF
+
+cat > /etc/swift/container-server.conf << EOF
+[DEFAULT]
+devices = /srv/node
+bind_ip = 127.0.0.1
+bind_port = 6001
+mount_check = false
+user = swift
+log_facility = LOG_LOCAL2
+workers = 1
+db_preallocation = on
+
+[pipeline:main]
+pipeline = recon container-server
+
+[app:container-server]
+use = egg:swift#container
+
+[container-replicator]
+concurrency = 1
+
+[container-updater]
+concurrency = 1
+
+[container-auditor]
+
+[container-sync]
+[filter:recon]
+use = egg:swift#recon
+recon_cache_path = /var/cache/swift
+EOF
+
+cat > /etc/swift/proxy-server.conf << EOF
+[DEFAULT]
+bind_port = 8080
+bind_ip = 127.0.0.1
+workers = 1
+user = swift
+set log_level = INFO
+log_facility = LOG_LOCAL2
+
+[pipeline:main]
+pipeline = catch_errors healthcheck cache ratelimit authtoken keystone proxy-logging proxy-server
+
+[app:proxy-server]
+use = egg:swift#proxy
+allow_account_management = true
+account_autocreate = true
+
+[filter:authtoken]
+paste.filter_factory = keystone.middleware.auth_token:filter_factory
+signing_dir = /etc/swift
+auth_host = localhost
+auth_port = 35357
+auth_protocol = http
+auth_uri = http://localhost:5000
+admin_tenant_name = swift
+admin_user = swift
+admin_password = $PASSWORD
+delay_auth_decision = 1
+
+[filter:cache]
+use = egg:swift#memcache
+memcache_servers = 127.0.0.1
+
+[filter:catch_errors]
+use = egg:swift#catch_errors
+
+
+[filter:healthcheck]
+use = egg:swift#healthcheck
+
+[filter:ratelimit]
+use = egg:swift#ratelimit
+clock_accuracy = 1000
+max_sleep_time_seconds = 60
+log_sleep_time_seconds = 0
+rate_buffer_seconds = 5
+account_ratelimit = 0
+
+[filter:proxy-logging]
+use = egg:swift#proxy_logging
+
+
+[filter:keystone]
+paste.filter_factory = keystone.middleware.swift_auth:filter_factory
+operator_roles = admin, SwiftOperator
+is_admin = true
+cache = swift.cache
+EOF
+
+for t in object container account; do
+  swift-ring-builder /etc/swift/$t.builder create 18 1 1
+  swift-ring-builder /etc/swift/$t.builder write_ring
+done
+  
+swift-ring-builder /etc/swift/object.builder add z1-127.0.0.1:6000/disk1 $SWIFT_DISK_SIZE
+swift-ring-builder /etc/swift/container.builder add z1-127.0.0.1:6001/disk1 $SWIFT_DISK_SIZE
+swift-ring-builder /etc/swift/account.builder add z1-127.0.0.1:6002/disk1 $SWIFT_DISK_SIZE
+
+for t in object container account; do
+  swift-ring-builder /etc/swift/$t.builder rebalance
+done
+
+cat > /etc/rc.local << EOF
+mount -t xfs -o noatime,nodiratime,nobarrier,logbufs=8 /srv/swift-disk /srv/node/disk1
+exit 0
+EOF
+
+mount -t xfs -o noatime,nodiratime,nobarrier,logbufs=8 /srv/swift-disk /srv/node/disk1
+echo '/srv/swift-disk    /srv/node/disk1 xfs     noatime,nodiratime,nobarrier,logbufs=8 0 1' >> /etc/fstab
+chown swift:swift -R /etc/swift
+chown swift:swift /var/cache/swift
+chown -R swift:swift /srv/node/*
+swift-init all start
+
+#
+# stud setup
+#
+cp /etc/ssl/certs/ssl-cert-snakeoil.pem /etc/stud/cert.pem
+cat /etc/ssl/private/ssl-cert-snakeoil.key >> /etc/stud/cert.pem
+openssl dhparam -rand - 1024 >> /etc/stud/cert.pem
+cat > /etc/stud/keystone.conf << EOF
+OPTIONS="-s -f $IPADDR,5000 -b 127.0.0.1,5000 -c ECDHE-RSA-RC4-SHA:RC4-SHA --ssl -n 1 "
+CERT="/etc/stud/cert.pem"
+EOF
+
+cat > /etc/stud/swift.conf << EOF
+OPTIONS="-s -f $IPADDR,443 -b 127.0.0.1,8080 -c ECDHE-RSA-RC4-SHA:RC4-SHA --ssl -n 1 "
+CERT="/etc/stud/cert.pem"
+EOF
+
+service stud start
+# stud init script braindamage
+service stud restart

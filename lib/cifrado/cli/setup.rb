@@ -2,7 +2,10 @@ module Cifrado
   class CLI
     desc "setup", "Initial Cifrado configuration"
     def setup
-      config_file = File.join(ENV['HOME'], '.cifradorc')
+      config_file = File.join(ENV['HOME'], '.config/cifrado/cifradorc')
+      unless File.directory?('.config/cifrado')
+        FileUtils.mkdir_p '.config/cifrado'
+      end
       if File.exist?(config_file)
         Log.warn "Config file #{set_color config_file, :bold} already exist."
         Log.warn "IMPORTANT: Make sure you backup the current config"
@@ -19,7 +22,7 @@ module Cifrado
       puts "Running cifrado setup..."
       puts "Please provide OpenStack/Rackspace credentials."
       puts
-      puts "Cifrado can save this settings in #{ENV['HOME']}/.cifradorc"
+      puts "Cifrado can save this settings in #{config_file}"
       puts "for later use."
       puts "The settings (password included) are saved unencrypted."
       puts
@@ -32,10 +35,15 @@ module Cifrado
       config[:auth_url] = ask(set_color 'Auth URL:', :bold)
 
       if !config[:secure_random]
-        config[:secure_random] = SecureRandom.hex
+        # shit happens
+        if RUBY_VERSION >= '1.9'
+          config[:secure_random] = SecureRandom.hex.encode('UTF-8')
+        else
+          config[:secure_random] = SecureRandom.hex
+        end
       end
 
-      if yes? "Do you want to save these settings?"
+      if yes? "Do you want to save these settings? (y/n) "
         if File.exist?(config_file)
           backup = "#{config_file}.bak.#{Time.now.to_i}"
           FileUtils.cp config_file, backup
@@ -46,6 +54,7 @@ module Cifrado
           f.chmod 0600
         end
         @settings_saved = true
+        Log.info "Saved!"
       end
 
       Log.debug "Setup done"

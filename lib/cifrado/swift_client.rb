@@ -124,11 +124,7 @@ module Cifrado
       end
 
       Log.debug "Upload response #{res.class}"
-      # Wrap Net::HTTPResponse in a Excon::Response Object
-      r = Excon::Response.new :body => res.body,
-                              :headers => res.to_hash,
-                              :status => res.code.to_i
-      r
+      res
     end
 
     def user_agent
@@ -181,6 +177,22 @@ module Cifrado
           download_object container, f.key, options
         end
         Excon::Response.new :status => 200
+      end
+    end
+    
+    #
+    # @returns [Integer]
+    #   * 0 if not available
+    #   * 1 if available
+    #   * 2 if available but MD5 does not match
+    def match(source_file, container, object_path = nil)
+      obj = object_path || source_file
+      headers = head container, clean_object_name(obj)
+      if headers
+        md5 = Digest::MD5.file(source_file).to_s
+        (md5 == headers['Etag']) ? 1 : 2
+      else
+        0
       end
     end
 
@@ -265,7 +277,7 @@ module Cifrado
                           :headers => res.to_hash,
                           :status => res.code.to_i
     end
-    
+
     def create_container(container, wait_for_it = false )
       dir = service.directories.create :key => container
       # Wait for the new container to be available

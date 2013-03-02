@@ -6,16 +6,7 @@ module Cifrado
     option :match, :type => :string
     def jukebox(container)
       client = client_instance
-      token = client.service.credentials[:token]
-      mgmt_url = client.service.credentials[:server_management_url]
       
-      mpbin = '/usr/bin/mplayer'
-      mpbin = File.exist?(mpbin) ? \
-        mpbin : `which /usr/bin/mplayer`.strip.chomp
-      unless File.exist?(mpbin)
-        raise "MPlayer binary not found. Install it first."
-      end
-
       dir = client.service.directories.get container
       unless dir
         raise "Container #{container} not found."
@@ -31,9 +22,7 @@ module Cifrado
       Log.info set_color("Ctrl-C twice", :bold)+ "  -> quit"
       Log.info
       $stderr.reopen('/dev/null', 'w')
-      cmd = %w{mplayer -really-quiet -msglevel all=-1 -cache 256 -}
-      pipe = IO.popen(cmd, 'w')
-      count = songs.size
+      pipe = IO.popen(player_command, 'w')
       songs.shuffle.each do |song|
         if options[:match] and song.key !~ /#{options[:match]}/i
           next
@@ -59,7 +48,7 @@ module Cifrado
           prettify_backtrace e
           pipe.close unless pipe.closed?
           Log.debug "Opening new pipe"
-          pipe = IO.popen(cmd, 'w')
+          pipe = IO.popen(player_command, 'w')
           if Time.now.to_f - last_exit < 1
             Log.info set_color "\nAdios!", :bold
             return
@@ -74,6 +63,30 @@ module Cifrado
         Log.debug "Closing pipe, killing mplayer"
         Process.kill 'SIGKILL', pipe.pid
         pipe.close 
+      end
+    end
+
+    private
+    def player_command
+      cvlc = '/usr/bin/cvlc'
+      vlc = '/usr/bin/vlc'
+      mplayer = '/usr/bin/mplayer'
+      totem = '/usr/bin/totem'
+
+      if File.exist?(cvlc)
+        Log.debug "Using cvlc player"
+        '/usr/bin/cvlc -' 
+      elsif File.exist?(mplayer)
+        Log.debug "Using mplayer player"
+        '/usr/bin/mplayer -really-quiet -msglevel all=-1 -cache 256 -'
+      elsif File.exist?(vlc)
+        Log.debug "Using vlc player"
+        '/usr/bin/vlc -'
+      elsif File.exist?(totem)
+        Log.debug "Using totem player"
+        '/usr/bin/totem --enqueue fd://0'
+      else
+        raise "No player available. Install MPlayer, VLC or totem."
       end
     end
 

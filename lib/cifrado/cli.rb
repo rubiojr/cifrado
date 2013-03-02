@@ -16,6 +16,7 @@ module Cifrado
     class_option :config
     class_option :region
     class_option :insecure, :type => :boolean, :desc => "Insecure SSL connections"
+    class_option :debug,    :type => :boolean
 
     private
     def secure_password
@@ -30,6 +31,10 @@ module Cifrado
 
       if options[:quiet] and Log.level < Logger::WARN
         Log.level = Logger::WARN
+      end
+
+      if options[:debug]
+        Log.level = Logger::DEBUG
       end
 
       config = check_options
@@ -53,7 +58,7 @@ module Cifrado
     end
 
     def check_options
-      config_file = options[:config] || File.join(ENV['HOME'], '.cifradorc')
+      config_file = options[:config] || File.join(ENV['HOME'], '.config/cifrado/cifradorc')
       config = {}
 
       if File.exist?(config_file)
@@ -89,173 +94,6 @@ module Cifrado
       config
     end
 
-    def upload_single(client, container, object)
-      fsize = File.size(object)
-      fbasename = File.basename(object)
-      Log.info "Uploading #{object} (#{humanize_bytes(fsize)})"
-
-      pb = Progressbar.new 1, 1, :style => options[:progressbar]
-
-      config = Cifrado::Config.instance
-      object_path = object
-      object_path = File.basename(object) if options[:strip_path]
-      if cs = needs_encryption
-        encrypted_file = File.join(config.cache_dir, File.basename(object))
-        Log.debug "Writing encrypted file to #{encrypted_file}"
-        encrypted_output = cs.encrypt object, 
-                                      encrypted_file
-        encrypted_name = encrypt_filename object, secure_password
-        client.upload container, 
-                      encrypted_output, 
-                      :headers => { 
-                        'X-Object-Meta-Encrypted-Name' => encrypted_name
-                      },
-                      :object_path => File.basename(encrypted_output),
-                      :progress_callback => pb.block,
-                      :bwlimit => bwlimit
-        object_path = File.basename(encrypted_output)
-        File.delete encrypted_output 
-      else
-        client.upload container, 
-                      object,
-                      :object_path => object_path,
-                      :progress_callback => pb.block,
-                      :bwlimit => bwlimit
-      end
-      object_path
-    end
-
-    def needs_encryption
-      return nil unless options[:encrypt]
-
-      tokens = options[:encrypt].split(':')
-      etype = tokens.first
-      if etype == 'a'
-        recipient = tokens[1..-1].join(':')
-        CryptoServices.new :type => :asymmetric, 
-                                    :recipient => recipient, 
-                                    :encrypt_name => true
-      elsif etype == 's' or etype == 'symmetric'
-        if etype == 'symmetric'
-          Log.info "Password to encrypt the data required"
-          system 'stty -echo'
-          passphrase = ask("Enter passphrase:")
-          puts
-          passphrase2 = ask("Repeat passphrase:")
-          puts
-          if passphrase != passphrase2
-            raise 'Passphrase does not match'
-          end
-          system 'stty echo'
-        else
-          passphrase = tokens[1..-1].join(':')
-        end
-        unless passphrase
-          raise "Invalid symmetric encryption passprase"
-        end
-        CryptoServices.new :type => :symmetric, 
-                                    :passphrase => passphrase, 
-                                    :encrypt_name => true
-      else
-        raise "Invalid encryption type #{etype}."
-      end
-    end
-
-    def encrypt_if_required(file)
-      if cs = needs_encryption
-        Log.debug "Encrypting object #{file}"
-        cache_dir = Cifrado::Config.instance.cache_dir
-        encrypted_output = cs.encrypt file, 
-                                      File.join(cache_dir, File.basename(file))
-      else
-        file
-      end
-    end
-
-    # FIXME: needs refactoring
-    def split_and_upload(client, container, object)
-      fbasename = File.basename(object)
-
-      # Encrypts the file if required
-      out = encrypt_if_required(object)
-
-      splitter = FileSplitter.new out, options[:segments]
-
-      if options[:encrypt]
-        target_manifest = File.basename(out)
-      else
-        target_manifest = (options[:strip_path] ? \
-                              File.basename(object) : clean_object_name(object))
-      end
-
-      Log.info "Segmenting file, #{options[:segments]} segments..."
-      Log.info "Uploading #{fbasename} segments"
-
-      segments_uploaded = []
-      splitter.split do |n, segment|
-        segment_size = File.size segment
-        hsegment_size = humanize_bytes segment_size
-        Log.info "Uploading segment #{n}/#{options[:segments]} (#{hsegment_size})"
-
-        segment_number = "%08d" % n
-        if options[:encrypt]
-          suffix = splitter.chunk_suffix + segment_number
-          obj_path = File.basename(out) + suffix
-          Log.debug "Encrypted object path: #{obj_path}"
-          encrypted_name = encrypt_filename object + suffix,
-                                            secure_password
-          headers = { 
-            'X-Object-Meta-Encrypted-Name' => encrypted_name 
-          }
-        else
-          obj_path = object + splitter.chunk_suffix + segment_number
-          Log.debug "Unencrypted object path #{obj_path}"
-          if options[:strip_path]
-            obj_path = File.basename(obj_path) 
-            Log.debug "Stripping path from object: #{obj_path}"
-          end
-          Log.debug "Uploading segment #{obj_path} (#{segment_size} bytes)..."
-          headers = {}
-        end
-
-        pb = Progressbar.new options[:segments],
-                             n,
-                             :style => options[:progressbar]
-
-        client.upload container + "_segments", 
-                      segment,
-                      :headers => headers,
-                      :object_path => obj_path,
-                      :progress_callback => pb.block,
-                      :bwlimit => bwlimit
-
-        File.delete segment
-        segments_uploaded << obj_path
-      end
-      
-      # We need this for segmented uploads
-      Log.debug "Adding manifest path #{target_manifest}"
-      xom = "#{Fog::OpenStack.escape(container + '_segments')}/" +
-            "#{Fog::OpenStack.escape(target_manifest)}"
-      headers = { 'X-Object-Manifest' => xom }
-      if options[:encrypt]
-        encrypted_name = encrypt_filename object, secure_password
-        headers['X-Object-Meta-Encrypted-Name'] = encrypted_name
-      end
-      client.create_directory container
-      client.service.put_object_manifest container, 
-                                         target_manifest,
-                                         headers  
-      segments_uploaded.insert 0, target_manifest
-
-      # Delete temporal encrypted file created by GPG
-      if options[:encrypt]
-        Log.debug "Deleting temporal encrypted file #{out}"
-        File.delete out 
-      end
-      segments_uploaded
-    end
-
   end
 end
 
@@ -268,6 +106,8 @@ require 'cifrado/cli/setup'
 require 'cifrado/cli/upload'
 require 'cifrado/cli/set_acl'
 require 'cifrado/cli/jukebox'
+require 'cifrado/cli/cinema'
+require 'cifrado/cli/saio'
 
 at_exit do
   include Cifrado::Utils
@@ -275,7 +115,7 @@ at_exit do
   e = $!
   if e
     if e.is_a? Excon::Errors::Unauthorized
-      Log.error set_color("Unauthorized.", :red, true)
+      Log.error "Unauthorized"
       Log.error "Double check the username, password and auth_url."
     elsif e.is_a? Excon::Errors::SocketError
       if e.message =~ /Unable to verify certificate|hostname (was|does) not match (with )?the server/

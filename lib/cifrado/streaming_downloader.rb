@@ -24,10 +24,9 @@ module Cifrado
       headers = options[:headers]
       request.initialize_http_header headers
 
-      bwlimit = options[:bwlimit] || 0
-      sleep_counter = 0.01
-      read = 0
-      time = Time.now.to_f 
+      rate_limit = nil
+      rate_limit = Cifrado::RateLimit.new(options[:bwlimit]) if options[:bwlimit]
+
       unless options[:stream]
         file = File.open(output, "wb") 
         Log.debug "Downloading file to #{output}"
@@ -37,16 +36,7 @@ module Cifrado
       http.request(request) do |response|
         clength = response['Content-Length'].to_i
         response.read_body do |segment|
-          if bwlimit > 0
-            bps = read/(Time.now.to_f - time)
-            if (bps > bwlimit) 
-              sleep sleep_counter
-              sleep_counter += 0.01
-            else
-              sleep_counter -= 0.01 if sleep_counter >= 0.02
-            end
-            read += segment.length
-          end
+          rate_limit.limit(segment.size) if rate_limit
           callback.call(clength, segment.length, segment) if callback
           file.write(segment) if file
         end
