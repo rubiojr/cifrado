@@ -13,6 +13,8 @@
   and plays them using mplayer if available).
 * Regular list/delete/stat commands.
 * Video streaming (streams video files available in a container).
+* Bootstrap a Swift All-In-One server in a cloud provider
+  (DigitalOcean is the only one supported ATM).
 * Ruby 1.8.7, 1.9.X and 2.0 compatibility.
 
 
