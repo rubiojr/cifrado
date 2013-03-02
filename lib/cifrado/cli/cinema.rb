@@ -21,7 +21,7 @@ module Cifrado
       if options[:subtitles]
         begin
           Log.info "Subtitles found, downloading."
-          sub_object = to_play.key.gsub(/\.(avi|mpeg|mov)$/, '') + '.srt'
+          sub_object = to_play.key.gsub(/\.(avi|mpeg|mov|mkv|ogv|webm)$/, '') + '.srt'
           sub = client.head container, sub_object
           sub_file = "/tmp/#{SecureRandom.hex}"
           client.download container, sub_object, :output => sub_file
