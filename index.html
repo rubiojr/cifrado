@@ -45,25 +45,32 @@
 <li>Asymmetric/Symmetric transparent encryption/decryption of files
 when uploading/downloading using GnuPG.</li>
 <li>Segmented uploads (splitting the file in multiple segments).</li>
-<li>Progressbar!</li>
+<li>Resume (unencrypted) segmented uploads. Segments already uploaded
+are not uploaded again. This feature does not work when using
+file encryption at the moment.</li>
+<li>Different progressbar styles. CLI does not have to be boring :).</li>
 <li>Bandwidth limits when uploading/downloading stuff.</li>
-<li>Music streaming (streams the mp3/ogg files available in a container
+<li>Music streaming (streams mp3/ogg files available in a container).
 and plays them using mplayer if available).</li>
 <li>Regular list/delete/stat commands.</li>
+<li>Video streaming (streams video files available in a container).</li>
+<li>Bootstrap a Swift All-In-One server in a cloud provider
+(DigitalOcean is the only one supported ATM).</li>
+<li>Ruby 1.8.7, 1.9.X and 2.0 compatibility.</li>
 </ul><p>Cifrado has a built-in help command:</p>
 
-<pre><code>[9648][rubiojr.blueleaf] cifrado help
-Tasks:
-  cifrado delete CONTAINER [OBJECT]      # Delete specific container or object
-  cifrado download [CONTAINER] [OBJECT]  # Download container, objects
-  cifrado help [TASK]                    # Describe available tasks or one s...
-  cifrado jukebox CONTAINER              # Play music randomly from the targ...
-  cifrado list [CONTAINER]               # List containers and objects
-  cifrado post CONTAINER [DESCRIPTION]   # Create a container
-  cifrado set-acl CONTAINER --acl=ACL    # Set an ACL on containers and objects
-  cifrado setup                          # Initial Cifrado configuration
-  cifrado stat [CONTAINER] [OBJECT]      # Displays information for the acco...
-  cifrado upload CONTAINER FILE          # Upload a file
+<pre><code>Tasks:
+  cifrado cinema CONTAINER VIDEO              # Stream videos from the targe...
+  cifrado delete CONTAINER [OBJECT]           # Delete specific container or...
+  cifrado download [CONTAINER] [OBJECT]       # Download container, objects
+  cifrado help [TASK]                         # Describe available tasks or ...
+  cifrado jukebox CONTAINER                   # Play music randomly from the...
+  cifrado list [CONTAINER]                    # List containers and objects
+  cifrado post CONTAINER [DESCRIPTION]        # Create a container
+  cifrado set-acl CONTAINER --acl=ACL         # Set an ACL on containers and...
+  cifrado setup                               # Initial Cifrado configuration
+  cifrado stat [CONTAINER] [OBJECT]           # Displays information for the...
+  cifrado upload CONTAINER FILE1 [FILE2] ...  # Upload files or directories
 
 Options:
   [--username=USERNAME]  
