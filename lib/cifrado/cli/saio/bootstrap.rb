@@ -91,6 +91,7 @@ module Cifrado
     private
     def save_settings(config)
       config_file = File.join(ENV['HOME'], '.config/cifrado/cifradorc')
+      FileUtils.mkdir_p File.join(ENV['HOME'], '.config/cifrado')
       if File.exist?(config_file)
         raise 'Cifrado config file exists. Refusing to overwrite.'
       else
