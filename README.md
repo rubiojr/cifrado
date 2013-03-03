@@ -6,6 +6,12 @@ The current Cifrado release is experimental. Use at your own risk.
 
 OpenStack Swift CLI with built in (GPG) encryption.
 
+There's an **ongoing** effort to document Cifrado in the Wiki. Additional details such as
+documentation to bootstrap your own Swift All-In-One server with Cifrado and the demo
+server available are documented there.
+
+See [Cifrado Demo Server](https://github.com/rubiojr/cifrado/wiki/Cifrado-Demo-Server) and [Cifrado SAIO Bootstrap](Cifrado SAIO bootstrap).
+
 ## Features available in Cifrado 0.1
 
 * Uploading/downloading files and directories to/from OpenStack Swift.
