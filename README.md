@@ -10,7 +10,7 @@ There's an **ongoing** effort to document Cifrado in the Wiki. Additional detail
 documentation to bootstrap your own Swift All-In-One server with Cifrado and the demo
 server available are documented there.
 
-See [Cifrado Demo Server](https://github.com/rubiojr/cifrado/wiki/Cifrado-Demo-Server) and [Cifrado SAIO Bootstrap](Cifrado SAIO bootstrap).
+See [Cifrado Demo Server](https://github.com/rubiojr/cifrado/wiki/Cifrado-Demo-Server) and [Cifrado SAIO Bootstrap](https://github.com/rubiojr/cifrado/wiki/Cifrado-SAIO-bootstrap).
 
 ## Features available in Cifrado 0.1
 
@@ -74,7 +74,7 @@ To add the PPA and install the packages, open a terminal and type:
 ```
 sudo add-apt-repository ppa:rubiojr/cifrado
 sudo apt-get update
-sudo apt-get install cifrado
+sudo apt-get install cifrado mplayer --no-install-recommends
 ```
 
 You'll also need GnuPG and MPlayer installed if you want to have
