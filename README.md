@@ -28,6 +28,8 @@ OpenStack Swift CLI with built in (GPG) encryption.
 Cifrado has a built-in help command:
 
 ```
+$ cifrado help
+
 Tasks:
   cifrado cinema CONTAINER VIDEO              # Stream videos from the target container
   cifrado delete CONTAINER [OBJECT]           # Delete specific container or object
@@ -95,12 +97,12 @@ Install the gem:
 If you already have a Swift installation running,
 you can use 'cifrado setup' to configure Cifrado for the first time.
 
-Note that it's not strictly required to save the options or running the
-setup process. If you do so, you'll not be asked for the username,
+The setup process is optional but highly recommended.
+If you run setup, you won't be asked for the username,
 password, auth_url and other parameters required to run Cifrado.
 
-The setup command will ask you the OpenStack Swift authentication 
-information:
+The setup command will ask you for the OpenStack Swift authentication
+parameters:
 
     $ cifrado setup
     Running cifrado setup...
@@ -116,7 +118,7 @@ information:
     Auth URL: https://identity.example.net/v2.0/tokens
     Do you want to save these settings? (y/n)  
 
-There's an alternative way to setup cifrado and provision a Swift All-In-One
+There's an alternative way to setup Cifrado and provision a Swift All-In-One
 server for testing and/or personal use. Head over to the Wiki for more
 details.
 
