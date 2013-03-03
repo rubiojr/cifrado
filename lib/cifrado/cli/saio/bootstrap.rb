@@ -2,10 +2,26 @@ module Cifrado
   class Saio < Thor
     
     desc 'bootstrap', 'Bootstrap a Swift All-In-One installation'
-    option :server_name,    :type => :string, :default => 'cifrado-saio'
-    option :ssh_key_name,   :type => :string, :required => true
-    option :save_settings,  :type => :boolean
+    option :server_name,     :type => :string, :default => 'cifrado-saio'
+    option :ssh_key_name,    :type => :string, :required => true
+    option :save_settings,   :type => :boolean
     option :bootstrap_debug, :type => :boolean
+    option :disk_size, 
+           :type => :numeric,
+           :default => 15,
+           :desc => 'Virtual disk size for Swift (in GB)'
+    option :flavor,          
+           :type => :string,
+           :desc => 'Flavor name to use when bootstraping',
+           :default => '51MB'
+    option :image,          
+           :type => :string,
+           :desc => 'Image name to use when bootstraping',
+           :default => 'Ubuntu 12.04 x64 Server'
+    option :region,          
+           :type => :string,
+           :desc => 'Region name to use when bootstraping',
+           :default => 'New York 1'
     def bootstrap
       require 'shexy'
 
@@ -24,9 +40,14 @@ module Cifrado
           raise "Server #{server_name} is currently running."
         end
 
-        flavor = service.flavors.find { |f| f.name == '512MB' }
-        image = service.images.find { |i| i.name == 'Ubuntu 12.04 x64 Server' }
-        region = service.regions.first
+        flavor = service.flavors.find { |f| f.name == options[:flavor] }
+        image = service.images.find { |i| i.name == options[:image] }
+        region = service.regions.find { |r| r.name == options[:region] }
+
+        unless image and flavor and region
+          raise "The specified image, flavor or region was not found"
+        end
+
         Log.info "Creating server #{server_name}..."
         server = service.servers.create :name        => options[:server_name],
                                         :image_id    => image.id,
@@ -55,7 +76,7 @@ module Cifrado
           secure_random = SecureRandom.hex
         end
       
-        script = bootstrap_script(user_password)
+        script = bootstrap_script(user_password, options[:disk_size])
         Shexy.copy_to script, '/root/saio.sh'
 
         # Provision Swift+Keystone
@@ -75,11 +96,12 @@ module Cifrado
         Log.info
         Log.info 'Swift is ready. Login details:'
         Log.info
-        Log.info "auth_url:      https://#{server.ip_address}:5000/v2.0/tokens"
-        Log.info "username:      admin"
-        Log.info "tenant:        admin"
-        Log.info "password:      #{user_password}"
-        Log.info "secure_random: #{secure_random}"
+        Log.info "---"
+        Log.info ":auth_url:      https://#{server.ip_address}:5000/v2.0/tokens"
+        Log.info ":username:      admin"
+        Log.info ":tenant:        admin"
+        Log.info ":password:      #{user_password}"
+        Log.info ":secure_random: #{secure_random}"
         Log.info
 
         save_settings(config) if options[:save_settings]
@@ -102,7 +124,7 @@ module Cifrado
       end
     end
 
-    def bootstrap_script(password)
+    def bootstrap_script(password, disk_size = 15)
       require 'erb'
       template = File.join(File.dirname(__FILE__), 'scripts/saio.sh.erb')
       result = ERB.new(File.read(template)).result(binding)

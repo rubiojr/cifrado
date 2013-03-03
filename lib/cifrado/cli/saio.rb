@@ -9,3 +9,6 @@ end
 
 require 'cifrado/cli/saio/bootstrap'
 require 'cifrado/cli/saio/destroy'
+require 'cifrado/cli/saio/flavors'
+require 'cifrado/cli/saio/images'
+require 'cifrado/cli/saio/regions'
