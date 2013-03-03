@@ -5,3 +5,4 @@
 * Object/Container copy: https://answers.launchpad.net/swift/+question/154210
 * Additional providers for cifrado saio (OpenStack, Rackspace)
 * Rackspace, Dreamhost Objects, HP support
+* Plugin API, pluggin support
