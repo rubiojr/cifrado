@@ -11,6 +11,10 @@ unless ENV['DEBUG']
   Cifrado::Log.level = Logger::ERROR
 end
 
+def fog_settings
+  YAML.load_file(File.expand_path('~/.fog'))[:default]
+end
+
 def client
   conf = YAML.load_file File.expand_path("~/.config/cifrado/cifradorc")
   client = SwiftClient.new  :username => conf[:username],

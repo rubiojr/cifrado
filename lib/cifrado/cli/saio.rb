@@ -3,7 +3,7 @@ require 'cifrado/cli/saio/base'
 module Cifrado
   class CLI
     desc "saio SUBCOMMAND ...ARGS", "Bootstrap a Swift installation"
-    subcommand "saio", Saio
+    subcommand "saio", Cifrado::Plugins::Saio
   end
 end
 
