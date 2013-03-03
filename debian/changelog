@@ -1,3 +1,9 @@
+cifrado (0.1.1-1) precise; urgency=low
+
+  * Cifrado 0.1.1
+
+ -- Sergio Rubio <rubiojr@frameos.org>  Sun, 03 Mar 2013 13:43:42 +0100
+
 cifrado (0.1-1) precise; urgency=low
 
   * Initial release
