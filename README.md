@@ -6,7 +6,13 @@ The current Cifrado release is experimental. Use at your own risk.
 
 OpenStack Swift CLI with built in (GPG) encryption.
 
-## Features available in Cifrado 0.1
+There's an **ongoing** effort to document Cifrado in the Wiki. Additional details such as
+documentation to bootstrap your own Swift All-In-One server with Cifrado and the demo
+server available are documented there.
+
+See [Cifrado Demo Server](https://github.com/rubiojr/cifrado/wiki/Cifrado-Demo-Server) and [Cifrado SAIO Bootstrap](https://github.com/rubiojr/cifrado/wiki/Cifrado-SAIO-bootstrap).
+
+## Features available in Cifrado 0.1.2
 
 * Uploading/downloading files and directories to/from OpenStack Swift.
 * Regular list/delete/stat commands to manipulate objects and containers.
@@ -23,6 +29,7 @@ OpenStack Swift CLI with built in (GPG) encryption.
 * Video streaming (streams video files available in a container).
 * Bootstrap a Swift All-In-One server in a cloud provider
   (DigitalOcean is the only one supported ATM).
+* Rackspace Cloud Files support (documentation available in the wiki).
 * Ruby 1.8.7, 1.9.X and 2.0 compatibility.
 
 Cifrado has a built-in help command:
@@ -68,7 +75,7 @@ To add the PPA and install the packages, open a terminal and type:
 ```
 sudo add-apt-repository ppa:rubiojr/cifrado
 sudo apt-get update
-sudo apt-get install cifrado
+sudo apt-get install cifrado mplayer --no-install-recommends
 ```
 
 You'll also need GnuPG and MPlayer installed if you want to have
@@ -177,6 +184,28 @@ download the object. That is, to download cifrado-0.1.gem from the
 test container, download it like any other regular object.
 
 #### Downloading files
+
+Downloading a file
+
+```
+$ cifrado download my-container my-object
+```
+
+Will download my-object from my-container to the current directory.
+If you want to download the file to another directory:
+
+```
+$ cifrado download my-container my-object --output /tmp
+```
+
+You can also download all the files available in a container:
+
+```
+$cifrado download my-container --output /tmp/mycontainer
+```
+
+This will download all the files in 'my-container' container
+to /tmp/mycontainer.
 
 #### Encryption support
 

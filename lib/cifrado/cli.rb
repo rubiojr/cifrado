@@ -80,13 +80,24 @@ module Cifrado
       config[:tenant]          = options[:tenant]   || config[:tenant] 
       config[:region]          = options[:region]   || config[:region] 
       config[:secure_random]   = config[:secure_random]
-      [:username, :password, :auth_url, :tenant].each do |opt|
+      [:username, :password, :auth_url].each do |opt|
         if config[opt].nil?
           Log.error "#{opt.to_s.capitalize} not provided."
           Log.error "Use --#{opt.to_s.gsub('_', '-')} option or run 'cifrado setup' first."
           raise "Missing setting"
         end
       end
+
+      if (config[:auth_url] !~ /rackspacecloud\.com/) and config[:tenant].nil?
+        Log.error "tenant not provided."
+        Log.error "Use --tenant option or run 'cifrado setup' first."
+        raise "Missing tenant"
+      else 
+        # Make sure tenant is nil for Rackspace
+        # otherwise we get a service catalog without cloudFiles endpoints
+        config[:tenant] = nil
+      end
+
       unless config[:secure_random]
         raise Exception.new("secure_random key not found in #{config_file}")
       end

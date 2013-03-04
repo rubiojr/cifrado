@@ -9,7 +9,7 @@ Shindo.tests('Cifrado | CLI#upload') do
     :insecure => true,
     :no_progressbar => true
   }
-  cli_options.merge!(cfg[:cli_options]) if cfg
+  cli_options.merge!(cfg[:cli_options]) if cfg[:cli_options]
   cli = Cifrado::CLI.new
   cli.options = cli_options
 
