@@ -9,7 +9,7 @@ Shindo.tests('Cifrado | CLI#upload') do
     :insecure => true,
     :no_progressbar => true
   }
-  cli_options.merge!(cfg[:cli_options]) if cfg
+  cli_options.merge!(cfg[:cli_options]) if cfg[:cli_options]
 
   tests '#upload' do
     tests 'segmented uploads' do
