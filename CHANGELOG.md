@@ -1,3 +1,21 @@
+# Cifrado 0.1.2 - Mon 04 Mar 2013
+
+* Added Rackspace Cloud Files support
+  To use Rackspace Cloud Files, run 'setup' and provide the following
+  details when asked:
+  
+  username: <your Rackspace username>
+  password: <your Rackspace password> # NOT THE API KEY!
+  
+  For US accounts, the auth URL is:
+  
+  https://identity.api.rackspacecloud.com/v2.0/tokens
+  
+  For UK accounts:
+  
+  https://lon.identity.api.rackspacecloud.com/v2.0/tokens
+
+
 # Cifrado 0.1.1 - Sun 03 Mar 2013
 
 * saio command improvements
