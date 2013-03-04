@@ -27,12 +27,14 @@ module Cifrado
       puts "The settings (password included) are saved unencrypted."
       puts
       config[:username] = ask(set_color('Username:', :bold))
-      config[:tenant]   = ask(set_color('Tenant:', :bold))
       system 'stty -echo'
       config[:password] = ask(set_color 'Password:', :bold)
       system 'stty echo'
       puts
       config[:auth_url] = ask(set_color 'Auth URL:', :bold)
+      if config[:auth_url] !~ /rackspacecloud\.com/
+        config[:tenant]   = ask(set_color('Tenant:', :bold))
+      end
 
       if !config[:secure_random]
         # shit happens
