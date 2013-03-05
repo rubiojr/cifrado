@@ -88,14 +88,19 @@ module Cifrado
         end
       end
 
-      if (config[:auth_url] !~ /rackspacecloud\.com/) and config[:tenant].nil?
-        Log.error "tenant not provided."
-        Log.error "Use --tenant option or run 'cifrado setup' first."
-        raise "Missing tenant"
-      else 
+      if config[:auth_url] =~ /rackspacecloud\.com/
+        Log.debug "Rackspace Authentication, removing tenant."
         # Make sure tenant is nil for Rackspace
         # otherwise we get a service catalog without cloudFiles endpoints
         config[:tenant] = nil
+      else 
+        if config[:tenant].nil?
+          Log.error "Tenant not provided."
+          Log.error "Use --tenant option or run 'cifrado setup' first."
+          raise "Missing tenant"
+        else
+          Log.debug "OpenStack regular authentication, using tenant name."
+        end
       end
 
       unless config[:secure_random]
