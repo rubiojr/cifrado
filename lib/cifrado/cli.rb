@@ -124,6 +124,7 @@ require 'cifrado/cli/set_acl'
 require 'cifrado/cli/jukebox'
 require 'cifrado/cli/cinema'
 require 'cifrado/cli/saio'
+require 'cifrado/cli/version'
 
 at_exit do
   include Cifrado::Utils
