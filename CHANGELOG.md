@@ -1,3 +1,8 @@
+# Cifrado 0.1.3 - Tue 05 Mar 2013
+
+* Fix regresion in the last release that may break regular OpenStack accounts
+* Added version command
+
 # Cifrado 0.1.2 - Mon 04 Mar 2013
 
 * Added Rackspace Cloud Files support
