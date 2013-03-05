@@ -44,7 +44,7 @@ server available are documented there.</p>
 
 <p>See <a href="https://github.com/rubiojr/cifrado/wiki/Cifrado-Demo-Server">Cifrado Demo Server</a> and <a href="https://github.com/rubiojr/cifrado/wiki/Cifrado-SAIO-bootstrap">Cifrado SAIO Bootstrap</a>.</p>
 
-<h2>Features available in Cifrado 0.1</h2>
+<h2>Features available in Cifrado 0.1.2</h2>
 
 <ul>
 <li>Uploading/downloading files and directories to/from OpenStack Swift.</li>
@@ -62,6 +62,7 @@ and plays them using mplayer/vlc/totem if available.</li>
 <li>Video streaming (streams video files available in a container).</li>
 <li>Bootstrap a Swift All-In-One server in a cloud provider
 (DigitalOcean is the only one supported ATM).</li>
+<li>Rackspace Cloud Files support (documentation available in the wiki).</li>
 <li>Ruby 1.8.7, 1.9.X and 2.0 compatibility.</li>
 </ul><p>Cifrado has a built-in help command:</p>
 
@@ -213,6 +214,25 @@ download the object. That is, to download cifrado-0.1.gem from the
 test container, download it like any other regular object.</p>
 
 <h4>Downloading files</h4>
+
+<p>Downloading a file</p>
+
+<pre><code>$ cifrado download my-container my-object
+</code></pre>
+
+<p>Will download my-object from my-container to the current directory.
+If you want to download the file to another directory:</p>
+
+<pre><code>$ cifrado download my-container my-object --output /tmp
+</code></pre>
+
+<p>You can also download all the files available in a container:</p>
+
+<pre><code>$cifrado download my-container --output /tmp/mycontainer
+</code></pre>
+
+<p>This will download all the files in 'my-container' container
+to /tmp/mycontainer.</p>
 
 <h4>Encryption support</h4>
 
