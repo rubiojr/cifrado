@@ -58,7 +58,17 @@ module Cifrado
     end
 
     def check_options
-      config_file = options[:config] || File.join(ENV['HOME'], '.config/cifrado/cifradorc')
+      config_dir = Cifrado::Config.instance.config_dir
+      config_file = options[:config] || File.join(config_dir, 'cifradorc')
+
+      # Cifrado can use config shortcuts, i.e. myhost without path
+      # is equivalent to ~/.config/cifrado/cifradorc.myhost
+      # 
+      config_shortcut = File.join(config_dir, "cifradorc.#{config_file}")
+      if File.exist?(config_shortcut)
+        config_file = config_shortcut
+      end
+
       config = {}
 
       if File.exist?(config_file)
@@ -72,6 +82,8 @@ module Cifrado
           Cifrado::Log.error "Error loading config file"
           raise e
         end
+      else
+        Log.warn "Config file #{config_file} not found."
       end
 
       config[:username]        = options[:username] || config[:username]
@@ -125,6 +137,7 @@ require 'cifrado/cli/jukebox'
 require 'cifrado/cli/cinema'
 require 'cifrado/cli/saio'
 require 'cifrado/cli/version'
+require 'cifrado/cli/configs'
 
 at_exit do
   include Cifrado::Utils
