@@ -32,6 +32,15 @@ Shindo.tests('Cifrado | CLI#upload') do
         segments = cli.upload 'cifrado-tests', obj
         segments.size == 0
       end
+      # Delete object manifest and test if it's added again
+      cli.delete test_container_name, clean_object_name(obj)
+      test 'object manifest is always added' do
+        segments = cli.upload 'cifrado-tests', obj
+        segments.size == 1
+      end
+      test 'object manifest exist' do
+        !client.head(test_container_name, obj).nil?
+      end
     end
     tests 'single uploads' do
       obj = create_bin_payload 1
