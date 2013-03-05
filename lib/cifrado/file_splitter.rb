@@ -13,7 +13,7 @@ module Cifrado
     # @param [String] Destination directory of the chunks
     def initialize(filename, 
                    chunk_number = nil, 
-                   cache_dir = File.join(ENV['HOME'], '.cache/cifrado') )
+                   cache_dir = Cifrado::Config.instance.cache_dir)
       raise ArgumentError.new unless File.exist?(filename)
       @filename = File.basename filename
       @source = filename

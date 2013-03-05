@@ -6,6 +6,9 @@ require 'digest/md5'
 
 include Cifrado
 include Cifrado::Utils
+
+Cifrado::Config.instance.cache_dir = File.expand_path("~/.cache/cifrado-test")
+Cifrado::Config.instance.config_dir = File.expand_path(File.dirname(__FILE__))
   
 unless ENV['DEBUG']
   Cifrado::Log.level = Logger::ERROR
