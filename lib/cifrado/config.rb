@@ -14,5 +14,13 @@ module Cifrado
     def cache_dir
       File.join(ENV['HOME'], '.cache/cifrado')
     end
+    
+    def config_dir=(dir)
+      @config_dir = dir
+    end
+
+    def config_dir
+      @config_dir || File.join(ENV['HOME'], '.config/cifrado')
+    end
   end
 end
