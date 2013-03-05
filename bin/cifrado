@@ -5,3 +5,33 @@ require 'uri'
 
 $0 = "cifrado #{ARGV.join(' ')}"
 Cifrado::CLI.start ARGV, :shell => Thor::Shell::Color.new
+
+at_exit do
+  include Cifrado::Utils
+  include Cifrado
+  e = $!
+  if e
+    if e.is_a? Excon::Errors::Unauthorized
+      Log.error "Unauthorized"
+      Log.error "Double check the username, password and auth_url."
+    elsif e.is_a? Excon::Errors::SocketError
+      if e.message =~ /Unable to verify certificate|hostname (was|does) not match (with )?the server/
+        Log.error "Unable to verify SSL certificate."
+        Log.error "If the server is using a self-signed certificate, try using --insecure."
+        Log.error "Please be aware of the security implications."
+      else
+        Log.error e.message
+      end
+    elsif e.is_a? RuntimeError
+      Log.error e.message
+    elsif e.is_a? Interrupt
+      Log.info
+      Log.info 'At your command, Sir!'
+    else
+      Log.fatal e.message
+    end
+    system 'stty echo'
+    prettify_backtrace e
+    exit! 1
+  end
+end
