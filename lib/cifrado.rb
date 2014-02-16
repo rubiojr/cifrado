@@ -48,3 +48,6 @@ require 'cifrado/swift_client'
 require 'cifrado/file_splitter'
 require 'cifrado/crypto_services'
 require 'cifrado/cli'
+require 'cifrado/plugin'
+
+Cifrado::Plugin.load_all
