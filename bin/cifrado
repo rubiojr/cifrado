@@ -4,7 +4,6 @@ require 'yaml'
 require 'uri'
 
 $0 = "cifrado #{ARGV.join(' ')}"
-Cifrado::CLI.start ARGV, :shell => Thor::Shell::Color.new
 
 at_exit do
   include Cifrado::Utils
@@ -35,3 +34,5 @@ at_exit do
     exit! 1
   end
 end
+
+Cifrado::CLI.start ARGV, :shell => Thor::Shell::Color.new
