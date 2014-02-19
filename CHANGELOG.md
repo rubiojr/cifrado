@@ -1,3 +1,7 @@
+# Cifrado 0.2.1 - Wed 19 Feb 2014
+
+* Minor fixes
+
 # Cifrado 0.2.0 - Wed 19 Feb 2014
 
 * HP Cloud support. See https://github.com/rubiojr/cifrado/wiki/Providers-HPCloud
