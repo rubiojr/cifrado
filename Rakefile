@@ -14,6 +14,7 @@ task :deb, :destdir do |t, args|
          "#{PROJECT}/debian " + \
          "--exclude #{PROJECT}/pkg " + \
          "--exclude #{PROJECT}/tmp " + \
+         "--exclude #{PROJECT}/tests " + \
          "-czf #{destdir}/#{PROJECT}_#{PROJECT_VERSION}.orig.tar.gz " + \
          "#{PROJECT}"
   Dir.chdir "#{destdir}"
