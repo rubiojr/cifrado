@@ -21,9 +21,9 @@ module Cifrado
 
 
       puts "Running cifrado setup..."
-      puts "Please provide OpenStack/Rackspace credentials."
+      puts "Please provide OpenStack/Rackspace/HPCloud credentials."
       puts
-      puts "Cifrado can save this settings in #{config_file}"
+      puts "Cifrado can save these settings in #{config_file}"
       puts "for later use."
       puts "The settings (password included) are saved unencrypted."
       puts
