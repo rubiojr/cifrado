@@ -241,12 +241,6 @@ module Cifrado
         File.delete out 
       end
       
-      if segments_uploaded.size == 0
-        Log.warn 'All the segments have been previously uploaded.'
-        Log.warn 'Skipping manifest creation.'
-        return segments_uploaded
-      end
-
       # We need this for segmented uploads
       Log.debug "Adding manifest path #{target_manifest}"
       xom = "#{Fog::OpenStack.escape(container + '_segments')}/" +
@@ -256,11 +250,17 @@ module Cifrado
         encrypted_name = encrypt_filename object, secure_password
         headers['X-Object-Meta-Encrypted-Name'] = encrypted_name
       end
+
+      # Make sure the container for the object manifest exists
       client.create_directory container
-      client.service.put_object_manifest container, 
-                                         target_manifest,
-                                         headers  
-      segments_uploaded.insert 0, target_manifest
+
+      unless client.head(container, target_manifest)
+        Log.debug "Adding object manifest #{target_manifest}"
+        client.service.put_object_manifest container, 
+                                           target_manifest,
+                                           headers  
+        segments_uploaded.insert 0, target_manifest
+      end
 
       segments_uploaded
     end

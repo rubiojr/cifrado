@@ -58,7 +58,17 @@ module Cifrado
     end
 
     def check_options
-      config_file = options[:config] || File.join(ENV['HOME'], '.config/cifrado/cifradorc')
+      config_dir = Cifrado::Config.instance.config_dir
+      config_file = options[:config] || File.join(config_dir, 'cifradorc')
+
+      # Cifrado can use config shortcuts, i.e. myhost without path
+      # is equivalent to ~/.config/cifrado/cifradorc.myhost
+      # 
+      config_shortcut = File.join(config_dir, "cifradorc.#{config_file}")
+      if File.exist?(config_shortcut)
+        config_file = config_shortcut
+      end
+
       config = {}
 
       if File.exist?(config_file)
@@ -72,6 +82,8 @@ module Cifrado
           Cifrado::Log.error "Error loading config file"
           raise e
         end
+      else
+        Log.warn "Config file #{config_file} not found."
       end
 
       config[:username]        = options[:username] || config[:username]
@@ -125,33 +137,5 @@ require 'cifrado/cli/jukebox'
 require 'cifrado/cli/cinema'
 require 'cifrado/cli/saio'
 require 'cifrado/cli/version'
+require 'cifrado/cli/configs'
 
-at_exit do
-  include Cifrado::Utils
-  include Cifrado
-  e = $!
-  if e
-    if e.is_a? Excon::Errors::Unauthorized
-      Log.error "Unauthorized"
-      Log.error "Double check the username, password and auth_url."
-    elsif e.is_a? Excon::Errors::SocketError
-      if e.message =~ /Unable to verify certificate|hostname (was|does) not match (with )?the server/
-        Log.error "Unable to verify SSL certificate."
-        Log.error "If the server is using a self-signed certificate, try using --insecure."
-        Log.error "Please be aware of the security implications."
-      else
-        Log.error e.message
-      end
-    elsif e.is_a? RuntimeError
-      Log.error e.message
-    elsif e.is_a? Interrupt
-      Log.info
-      Log.info 'At your command, Sir!'
-    else
-      Log.fatal e.message
-    end
-    system 'stty echo'
-    prettify_backtrace e
-    exit! 1
-  end
-end

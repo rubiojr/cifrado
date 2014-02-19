@@ -5,7 +5,7 @@ Shindo.tests('Cifrado | SwiftClient#head') do
   tests 'head object' do
     test "object #{clean_object} headers available" do
       client.upload test_container_name, obj1
-      (client.head test_container_name, clean_object_name(obj1)).is_a?(Hash)
+      client.head(test_container_name, obj1).is_a?(Hash)
     end
     test 'head invalid object' do
       client.head(test_container_name, SecureRandom.hex).nil?

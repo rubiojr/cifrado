@@ -2,9 +2,10 @@ module Cifrado
   class CLI
     desc "setup", "Initial Cifrado configuration"
     def setup
-      config_file = File.join(ENV['HOME'], '.config/cifrado/cifradorc')
-      unless File.directory?('.config/cifrado')
-        FileUtils.mkdir_p '.config/cifrado'
+      config_instance = Cifrado::Config.instance
+      config_file = File.join(config_instance.config_dir, 'cifradorc')
+      unless File.directory?(config_instance.config_dir)
+        FileUtils.mkdir_p config_instance.config_dir
       end
       if File.exist?(config_file)
         Log.warn "Config file #{set_color config_file, :bold} already exist."
@@ -20,9 +21,9 @@ module Cifrado
 
 
       puts "Running cifrado setup..."
-      puts "Please provide OpenStack/Rackspace credentials."
+      puts "Please provide OpenStack/Rackspace/HPCloud credentials."
       puts
-      puts "Cifrado can save this settings in #{config_file}"
+      puts "Cifrado can save these settings in #{config_file}"
       puts "for later use."
       puts "The settings (password included) are saved unencrypted."
       puts

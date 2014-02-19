@@ -7,7 +7,7 @@ Gem::Specification.new do |gem|
   gem.name          = "cifrado"
   gem.version       = Cifrado::VERSION
   gem.authors       = ["Sergio Rubio"]
-  gem.signing_key   = File.expand_path("~/.gem/gem-private_key.pem")
+  #gem.signing_key   = File.expand_path("~/.gem/gem-private_key.pem")
   gem.cert_chain    = ["gem-public_cert.pem"]
   gem.email         = ["rubiojr@frameos.org"]
   gem.description   = %q{OpenStack Swift CLI with encryption support}

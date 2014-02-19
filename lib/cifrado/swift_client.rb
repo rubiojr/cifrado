@@ -33,7 +33,7 @@ module Cifrado
     def head(container = nil, object = nil)
       begin 
         if container and object
-          service.head_object(container, object).headers
+          service.head_object(container, clean_object_name(object)).headers
         elsif container
           service.head_container(container).headers
         else

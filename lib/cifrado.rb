@@ -31,6 +31,8 @@ module Cifrado
     Log.debug "Initializing logger"
   end
 
+  Cifrado::Config.instance.init_env
+
 end
 
 vendored_fog = File.join(File.dirname(__FILE__), 'cifrado/vendor/fog/lib')

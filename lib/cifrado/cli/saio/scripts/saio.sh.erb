@@ -19,7 +19,7 @@ function get_id () {
 
 echo deb http://ubuntu-cloud.archive.canonical.com/ubuntu precise-updates/folsom main > /etc/apt/sources.list.d/folsom.list
 apt-get update
-apt-get install -y ubuntu-cloud-keyring
+apt-get install -y ubuntu-cloud-keyring ntp
 apt-get update
 apt-get install -y keystone python-software-properties telnet xfsprogs pwgen ssl-cert curl wget ca-certificates tcpflow
 add-apt-repository -y ppa:bvox/ppa

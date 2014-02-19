@@ -195,7 +195,6 @@ module Fog
         :expects  => [200, 204],
         :headers  => {'Content-Type' => 'application/json'},
         :body     => Fog::JSON.encode(request_body),
-        :host     => uri.host,
         :method   => 'POST',
         :path     => (uri.path and not uri.path.empty?) ? uri.path : 'v2.0'
       })

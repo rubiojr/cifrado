@@ -6,6 +6,9 @@ require 'digest/md5'
 
 include Cifrado
 include Cifrado::Utils
+
+Cifrado::Config.instance.cache_dir = File.expand_path("~/.cache/cifrado-test")
+Cifrado::Config.instance.config_dir = File.expand_path(File.dirname(__FILE__))
   
 unless ENV['DEBUG']
   Cifrado::Log.level = Logger::ERROR
@@ -16,7 +19,7 @@ def fog_settings
 end
 
 def client
-  conf = YAML.load_file File.expand_path("~/.config/cifrado/cifradorc")
+  conf = YAML.load_file Cifrado::Config.instance.config_dir + "/cifradorc"
   client = SwiftClient.new  :username => conf[:username],
                             :api_key  => conf[:password],
                             :auth_url => conf[:auth_url],
@@ -106,7 +109,7 @@ def cleanup
   clean_test_payloads
   clean_test_container
   Dir["/tmp/cifrado*"].each { |f| FileUtils.rm_rf f }
-  Dir[File.join(ENV['HOME'], ".cache/cifrado") + "/*segments*"].each { |f| FileUtils.rm_rf f }
+  Dir["#{Cifrado::Config.instance.cache_dir}/*"].each { |f| FileUtils.rm_f f }
 end
 
 def tmpfile
