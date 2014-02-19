@@ -1,3 +1,9 @@
+cifrado (0.2.1-0ubuntu1) precise; urgency=low
+
+  * Packaging fixes
+
+ -- Sergio Rubio <rubiojr@frameos.org>  Wed, 19 Feb 2014 18:21:06 +0100
+
 cifrado (0.2.0-1) precise; urgency=low
 
   * Cifrado 0.2.0
