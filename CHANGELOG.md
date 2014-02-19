@@ -1,3 +1,9 @@
+# Cifrado 0.2.0 - Wed 19 Feb 2014
+
+* HP Cloud support. See https://github.com/rubiojr/cifrado/wiki/Providers-HPCloud
+* Added `config` command. See https://github.com/rubiojr/cifrado/commit/ea291b75fc45895ddfed9077caa6c225349b3145
+* Bug Fixes 
+
 # Cifrado 0.1.3 - Tue 05 Mar 2013
 
 * Fix regresion in the last release that may break regular OpenStack accounts
