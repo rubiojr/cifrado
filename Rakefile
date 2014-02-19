@@ -13,6 +13,7 @@ task :deb, :destdir do |t, args|
   system "tar --exclude #{PROJECT}/.git --exclude #{PROJECT}/exclude --exclude " + \
          "#{PROJECT}/debian " + \
          "--exclude #{PROJECT}/pkg " + \
+         "--exclude #{PROJECT}/tmp " + \
          "-czf #{destdir}/#{PROJECT}_#{PROJECT_VERSION}.orig.tar.gz " + \
          "#{PROJECT}"
   Dir.chdir "#{destdir}"
